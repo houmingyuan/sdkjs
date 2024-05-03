@@ -16792,6 +16792,43 @@
 		return new ApiContentControlList(this);
 	};
 
+	/**
+	 * Checks whether this content control is a checkbox.
+	 * @memberof ApiInlineLvlSdt
+	 * @typeofeditors ["CDE"]
+	 * @returns {boolean}
+	 */
+	ApiInlineLvlSdt.prototype.IsCheckbox = function()
+	{
+		return this.Sdt.IsCheckBox();
+	};
+	/**
+	 * Sets the checkbox state.
+	 * Works only for checkboxes.
+	 * @memberof ApiInlineLvlSdt
+	 * @param {boolean} isChecked - Specifies if the current checkbox will be checked (true) or not (false).
+	 * @typeofeditors ["CDE"]
+	 * @returns {boolean}
+	 */
+	ApiInlineLvlSdt.prototype.SetChecked = function(isChecked)
+	{
+		if (false == this.Sdt.IsCheckBox() || typeof(isChecked) !== "boolean")
+			return false;
+
+		this.Sdt.SetCheckBoxChecked(isChecked);
+		return true;
+	};
+	/**
+	 * Returns the state of the current checkbox (checked or not).
+	 * @memberof ApiInlineLvlSdt
+	 * @typeofeditors ["CDE"]
+	 * @returns {boolean}
+	 */
+	ApiInlineLvlSdt.prototype.IsChecked = function()
+	{
+		return this.Sdt.IsCheckBoxChecked();
+	};
+
 	//------------------------------------------------------------------------------------------------------------------
 	//
 	// ApiContentControlList
@@ -18830,7 +18867,7 @@
 	//------------------------------------------------------------------------------------------------------------------
 
 	/**
-	 * Checks the current checkbox.
+	 * Sets the checkbox state.
 	 * @memberof ApiCheckBoxForm
 	 * @param {boolean} isChecked - Specifies if the current checkbox will be checked (true) or not (false).
 	 * @typeofeditors ["CDE", "CFE"]
@@ -20870,6 +20907,10 @@
 	ApiInlineLvlSdt.prototype["ToJSON"]                 = ApiInlineLvlSdt.prototype.ToJSON;
 	ApiInlineLvlSdt.prototype["AddComment"]             = ApiInlineLvlSdt.prototype.AddComment;
 	ApiInlineLvlSdt.prototype["MoveCursorOutside"]      = ApiInlineLvlSdt.prototype.MoveCursorOutside;
+	ApiInlineLvlSdt.prototype["IsCheckbox"]				= ApiInlineLvlSdt.prototype.IsCheckbox;
+	ApiInlineLvlSdt.prototype["SetChecked"]				= ApiInlineLvlSdt.prototype.SetChecked;
+	ApiInlineLvlSdt.prototype["IsChecked"]				= ApiInlineLvlSdt.prototype.IsChecked;
+	
 
 	ApiInlineLvlSdt.prototype["GetPlaceholderText"]     = ApiInlineLvlSdt.prototype.GetPlaceholderText;
 	ApiInlineLvlSdt.prototype["SetPlaceholderText"]     = ApiInlineLvlSdt.prototype.SetPlaceholderText;
