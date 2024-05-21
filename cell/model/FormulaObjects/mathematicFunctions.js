@@ -5248,6 +5248,10 @@ function (window, undefined) {
 					}
 				}
 
+				if (cElementType.error === arg2.type) {
+					arg2 = new cString(arg2.getValue());
+				}
+
 				if (cElementType.string !== arg2.type) {
 					return new cError(cErrorType.wrong_value_type);
 				}

@@ -159,29 +159,130 @@ function (window, undefined) {
 	cIF.prototype.argumentsMin = 2;
 	cIF.prototype.argumentsMax = 3;
 	cIF.prototype.numFormat = AscCommonExcel.cNumFormatNone;
+	cIF.prototype.arrayIndexes = {0: 1, 1: 1, 2: 1};
 	cIF.prototype.argumentsType = [argType.logical, argType.any, argType.any];
 	cIF.prototype.Calculate = function (arg) {
-		var arg0 = arg[0], arg1 = arg[1], arg2 = arg[2];
+		const t = this;
+		let arg0 = arg[0], arg1 = arg[1], arg2 = arg[2];
 
-		if (arg0 instanceof cArray) {
-			arg0 = arg0.getElement(0);
-		}
-		if (arg1 instanceof cArray) {
-			arg1 = arg1.getElement(0);
-		}
-		if (arg2 instanceof cArray) {
-			arg2 = arg2.getElement(0);
-		}
+		if (arg0.type === cElementType.array || arg0.type === cElementType.cellsRange || arg0.type === cElementType.cellsRange3D) {
+			// go through the array/range and return mixed array with the parts of the result of formula
+			let resArr = new cArray();
+			let tempArraySize, maxArraySize = arg0.getDimensions();
+			let arg0Rows = maxArraySize.row, arg0Cols = maxArraySize.col;
 
-		arg0 = arg0.tocBool();
-		if (arg0 instanceof cError) {
+			// get max array size by by checking second and third arguments
+			if (arg1 && arg1.type === cElementType.cellsRange || arg1.type === cElementType.cellsRange3D || arg1.type === cElementType.array) {
+				tempArraySize = arg1.getDimensions();
+				maxArraySize.row = tempArraySize.row > maxArraySize.row ? tempArraySize.row : maxArraySize.row;
+				maxArraySize.col = tempArraySize.col > maxArraySize.col ? tempArraySize.col : maxArraySize.col;
+			}
+
+			if (arg2 && arg2.type === cElementType.cellsRange || arg2.type === cElementType.cellsRange3D || arg2.type === cElementType.array) {
+				tempArraySize = arg2.getDimensions();
+				maxArraySize.row = tempArraySize.row > maxArraySize.row ? tempArraySize.row : maxArraySize.row;
+				maxArraySize.col = tempArraySize.col > maxArraySize.col ? tempArraySize.col : maxArraySize.col;
+			}
+
+			for (let r = 0; r < arg0Rows; r++) {
+				for (let c = 0; c < arg0Cols; c++) {
+					let elem = arg0.getValue2(r, c);
+					let chosenArgument = t.Calculate([elem, arg1, arg2]);
+					let argDimensions = chosenArgument.getDimensions();
+					let singleRow = arg0Rows === 1;
+					let singleCol = arg0Cols === 1;
+					let tempArr = [];
+
+					if (singleRow || singleCol) {
+						// if the first argument has one row or column we need to fully take this row or column and pass it to the resulting array
+						for (let i = 0; i < (singleRow ? maxArraySize.row : maxArraySize.col); i++) {
+							let elemFromChosenArgument;
+							if (chosenArgument.type === cElementType.array || chosenArgument.type === cElementType.cellsRange || chosenArgument.type === cElementType.cellsRange3D) {
+								if (argDimensions.col === 1) {
+									// return elem from first col
+									elemFromChosenArgument = chosenArgument.getElementRowCol ? chosenArgument.getElementRowCol(singleRow ? i : r, 0) : chosenArgument.getValueByRowCol(singleRow ? i : r, 0);
+								} else if (argDimensions.row === 1) {
+									// return elem from first row
+									elemFromChosenArgument = chosenArgument.getElementRowCol ? chosenArgument.getElementRowCol(0, singleRow ? c : i) : chosenArgument.getValueByRowCol(0, singleRow ? c : i);
+								} else {
+									// return r/c elem
+									elemFromChosenArgument = chosenArgument.getElementRowCol ? chosenArgument.getElementRowCol(singleRow ? i : r, singleRow ? c : i) : chosenArgument.getValueByRowCol(singleRow ? i : r, singleRow ? c : i);
+								}
+
+								// if we go outside the range, we must return the #N/A error to the array
+								if ((singleRow && argDimensions.row - 1 !== 0 && argDimensions.row - 1 < i) || (singleCol && argDimensions.col - 1 !== 0 && argDimensions.col - 1 < i)) {
+									elemFromChosenArgument = new cError(cErrorType.not_available);
+								}
+							} else {
+								elemFromChosenArgument = chosenArgument;
+							}
+							
+							// undefined can be obtained when accessing an empty cell in the range, in which case we need to return cEmpty
+							if (elemFromChosenArgument === undefined) {
+								elemFromChosenArgument = new cEmpty();
+							}
+
+							singleRow ? tempArr.push([elemFromChosenArgument]) : tempArr.push(elemFromChosenArgument);
+						}
+						singleRow ? resArr.pushCol(tempArr, 0) : resArr.pushRow([tempArr], 0);
+					} else {
+						// get r/c part from chosen argument
+						let elemFromChosenArgument;
+						if (chosenArgument.type === cElementType.array || chosenArgument.type === cElementType.cellsRange || chosenArgument.type === cElementType.cellsRange3D) {
+							if (argDimensions.row === 1) {
+								elemFromChosenArgument = chosenArgument.getElementRowCol ? chosenArgument.getElementRowCol(0, c) : chosenArgument.getValueByRowCol(0, c);
+							} else if (argDimensions.col === 1) {
+								elemFromChosenArgument = chosenArgument.getElementRowCol ? chosenArgument.getElementRowCol(r, 0) : chosenArgument.getValueByRowCol(r, 0);
+							} else {
+								elemFromChosenArgument = chosenArgument.getElementRowCol ? chosenArgument.getElementRowCol(r, c) : chosenArgument.getValueByRowCol(r, c);
+							}
+							if (argDimensions.col - 1 !== 0 && argDimensions.col - 1 < c) {
+								elemFromChosenArgument = new cError(cErrorType.not_available);
+							}
+						} else {
+							elemFromChosenArgument = chosenArgument;
+						}
+
+						// undefined can be obtained when accessing an empty cell in the range, in which case we need to return cEmpty
+						if (elemFromChosenArgument === undefined) {
+							elemFromChosenArgument = new cEmpty();
+						}
+
+						if (!resArr.array[r]) {
+							resArr.addRow();
+						}
+						resArr.addElement(elemFromChosenArgument);
+					}
+				}
+			}
+
+			// fill the rest of array with #N/A error
+			for (let i = 0; i < maxArraySize.row; i++) {
+				let addFullRow;
+				if (i >= resArr.getRowCount()) {
+					resArr.addRow();
+					addFullRow = true;
+				}
+				for (let j = (addFullRow ? 0 : resArr.getCountElementInRow()); j < maxArraySize.col; j++) {
+					resArr.array[i].push(new cError(cErrorType.not_available));
+				}
+			}
+
+			// since we added elements without using internal methods, recalculate the internal properties
+			resArr.recalculate();
+
+			return resArr;
+		} else if (arg0.type === cElementType.error) {
 			return arg0;
-		} else if (arg0 instanceof cString) {
+		} else if (arg0.type === cElementType.string) {
 			return new cError(cErrorType.wrong_value_type);
-		} else if (arg0.value) {
-			return arg1 ? arg1 instanceof cEmpty ? new cNumber(0) : arg1 : new cBool(true);
 		} else {
-			return arg2 ? arg2 instanceof cEmpty ? new cNumber(0) : arg2 : new cBool(false);
+			arg0 = arg0.tocBool();
+			if (arg0.value) {
+				return arg1 ? (arg1.type === cElementType.empty ? new cNumber(0) : arg1) : new cBool(true);
+			} else {
+				return arg2 ? (arg2.type === cElementType.empty ? new cNumber(0) : arg2) : new cBool(false);
+			}
 		}
 	};
 

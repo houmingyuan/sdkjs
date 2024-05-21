@@ -8673,6 +8673,35 @@ $(function () {
 		oParser = new parserFormula("SUMIFS(C:D,E:E,$H2)", "A11", ws);
 		assert.ok(oParser.parse());
 		assert.strictEqual(oParser.calculate().getValue(), "#VALUE!");
+
+		// for bug 56447
+		ws.getRange2("A101:A110").setValue("10");
+		ws.getRange2("B101:B110").setValue("20");
+
+		oParser = new parserFormula('SUMIFS(IF(A101=10,A101:A110,{1,2,3}),A101:A110,">0")', "A11", ws);
+		assert.ok(oParser.parse(), 'SUMIFS(IF(A101=10,A101:A110,{1,2,3}),A101:A110,">0")');
+		assert.strictEqual(oParser.calculate().getValue(), 100, 'Result of SUMIFS(IF(A101=10,A101:A110,{1,2,3}),A101:A110,">0")');
+
+		ws.getRange2("C101").setValue("#N/A");
+		ws.getRange2("C102").setValue("#VALUE!");
+		ws.getRange2("C103").setValue("1");
+		oParser = new parserFormula('SUMIFS(IF(A101=10,A101:A110,{1,2,3}),A101:A110,C101)', "A11", ws);
+		assert.ok(oParser.parse(), 'SUMIFS(IF(A101=10,A101:A110,{1,2,3}),A101:A110,C101)');
+		assert.strictEqual(oParser.calculate().getValue(), 0, 'Result of SUMIFS(IF(A101=10,A101:A110,{1,2,3}),A101:A110,C101)');
+
+		ws.getRange2("B105").setValue("#N/A");
+		oParser = new parserFormula('SUMIFS(IF(A101=10,A101:A110,{1,2,3}),B101:B110,C101)', "A11", ws);
+		assert.ok(oParser.parse(), 'SUMIFS(IF(A101=10,A101:A110,{1,2,3}),B101:B110,C101)');
+		assert.strictEqual(oParser.calculate().getValue(), 10, 'Result of SUMIFS(IF(A101=10,A101:A110,{1,2,3}),B101:B110,C101)');
+
+		oParser = new parserFormula('SUMIFS(IF(A101=10,A101:A110,{1,2,3}),A101:A110,C102)', "A11", ws);
+		assert.ok(oParser.parse(), 'SUMIFS(IF(A101=10,A101:A110,{1,2,3}),A101:A110,C102)');
+		assert.strictEqual(oParser.calculate().getValue(), 0, 'Result of SUMIFS(IF(A101=10,A101:A110,{1,2,3}),A101:A110,C102)');
+
+		oParser = new parserFormula('SUMIFS(IF(A101=10,A101:A110,{1,2,3}),A101:A110,C103/0)', "A11", ws);
+		assert.ok(oParser.parse(), 'SUMIFS(IF(A101=10,A101:A110,{1,2,3}),A101:A110,C103/0)');
+		assert.strictEqual(oParser.calculate().getValue(), 0, 'Result of SUMIFS(IF(A101=10,A101:A110,{1,2,3}),A101:A110,C103/0)');
+
 	});
 
 	QUnit.test("Test: \"MAXIFS\"", function (assert) {
@@ -28644,6 +28673,59 @@ $(function () {
 		oParser = new parserFormula('IF(A101=2,"Yes","No")', "AA2", ws);
 		assert.ok(oParser.parse());
 		assert.strictEqual(oParser.calculate().getValue(), "No");
+
+		// for bug 56447
+		let array;
+		ws.getRange2("A101").setValue("1");
+		ws.getRange2("A102").setValue("2");
+		ws.getRange2("A103").setValue("3");
+		ws.getRange2("B101").setValue("2");
+		ws.getRange2("B102").setValue("4");
+		ws.getRange2("B103").setValue("6");
+		ws.getRange2("C101").setValue("3");
+		ws.getRange2("C102").setValue("6");
+		ws.getRange2("C103").setValue("9");
+
+		ws.getRange2("J101").setValue("TRUE");
+		ws.getRange2("J102").setValue("FALSE");
+
+		oParser = new parserFormula('IF(J101:J102,$A101:$B102,{4,4,4,4})', "AA2", ws);
+		assert.ok(oParser.parse());
+		array = oParser.calculate();
+		assert.strictEqual(array.getElementRowCol(0,0).getValue(), 1, "Result of IF(J101:J102,$A101:$B102,{4,4,4,4})[0,0]");
+		assert.strictEqual(array.getElementRowCol(0,1).getValue(), 2, "Result of IF(J101:J102,$A101:$B102,{4,4,4,4})[0,1]");
+		assert.strictEqual(array.getElementRowCol(0,2).getValue(), "#N/A", "Result of IF(J101:J102,$A101:$B102,{4,4,4,4})[0,2]");
+		assert.strictEqual(array.getElementRowCol(0,3).getValue(), "#N/A", "Result of IF(J101:J102,$A101:$B102,{4,4,4,4})[0,3]");
+		assert.strictEqual(array.getElementRowCol(1,0).getValue(), 4, "Result of IF(J101:J102,$A101:$B102,{4,4,4,4})[1,0]");
+		assert.strictEqual(array.getElementRowCol(1,1).getValue(), 4, "Result of IF(J101:J102,$A101:$B102,{4,4,4,4})[1,1]");
+		assert.strictEqual(array.getElementRowCol(1,2).getValue(), 4, "Result of IF(J101:J102,$A101:$B102,{4,4,4,4})[1,2]");
+		assert.strictEqual(array.getElementRowCol(1,3).getValue(), 4, "Result of IF(J101:J102,$A101:$B102,{4,4,4,4})[1,3]");
+
+		oParser = new parserFormula('IF({0,"DS"},$A101:$B102,{4,4,4,4})', "AA2", ws);
+		assert.ok(oParser.parse());
+		array = oParser.calculate();
+		assert.strictEqual(array.getElementRowCol(0,0).getValue(), 4, 'Result of IF({0,"DS"},$A101:$B102,{4,4,4,4})[0,0]');
+		assert.strictEqual(array.getElementRowCol(0,1).getValue(), "#VALUE!", 'Result of IF({0,"DS"},$A101:$B102,{4,4,4,4})[0,1]');
+		assert.strictEqual(array.getElementRowCol(0,2).getValue(), "#N/A", 'Result of IF({0,"DS"},$A101:$B102,{4,4,4,4})[0,2]');
+		assert.strictEqual(array.getElementRowCol(0,3).getValue(), "#N/A", 'Result of IF({0,"DS"},$A101:$B102,{4,4,4,4})[0,3]');
+		assert.strictEqual(array.getElementRowCol(1,0).getValue(), 4, 'Result of IF({0,"DS"},$A101:$B102,{4,4,4,4})[1,0]');
+		assert.strictEqual(array.getElementRowCol(1,1).getValue(), "#VALUE!", 'Result of IF({0,"DS"},$A101:$B102,{4,4,4,4})[1,1]');
+		assert.strictEqual(array.getElementRowCol(1,2).getValue(), "#N/A", 'Result of IF({0,"DS"},$A101:$B102,{4,4,4,4})[1,2]');
+		assert.strictEqual(array.getElementRowCol(1,3).getValue(), "#N/A", 'Result of IF({0,"DS"},$A101:$B102,{4,4,4,4})[1,3]');
+
+		oParser = new parserFormula('IF({FALSE,FALSE;FALSE,FALSE},$A101:$B103,{4,4,4})', "AA2", ws);
+		assert.ok(oParser.parse());
+		array = oParser.calculate();
+		assert.strictEqual(array.getElementRowCol(0,0).getValue(), 4, 'Result of IF({FALSE,FALSE;FALSE,FALSE},$A101:$B103,{4,4,4})[0,0]');
+		assert.strictEqual(array.getElementRowCol(0,1).getValue(), 4, 'Result of IF({FALSE,FALSE;FALSE,FALSE},$A101:$B103,{4,4,4})[0,1]');
+		assert.strictEqual(array.getElementRowCol(0,2).getValue(), "#N/A", 'Result of IF({FALSE,FALSE;FALSE,FALSE},$A101:$B103,{4,4,4})[0,2]');
+		assert.strictEqual(array.getElementRowCol(1,0).getValue(), 4, 'Result of IF({FALSE,FALSE;FALSE,FALSE},$A101:$B103,{4,4,4})[1,0]');
+		assert.strictEqual(array.getElementRowCol(1,1).getValue(), 4, 'Result of IF({FALSE,FALSE;FALSE,FALSE},$A101:$B103,{4,4,4})[1,1]');
+		assert.strictEqual(array.getElementRowCol(1,2).getValue(), "#N/A", 'Result of IF({FALSE,FALSE;FALSE,FALSE},$A101:$B103,{4,4,4})[1,2]');
+		assert.strictEqual(array.getElementRowCol(2,0).getValue(), "#N/A", 'Result of IF({FALSE,FALSE;FALSE,FALSE},$A101:$B103,{4,4,4})[2,0]');
+		assert.strictEqual(array.getElementRowCol(2,1).getValue(), "#N/A", 'Result of IF({FALSE,FALSE;FALSE,FALSE},$A101:$B103,{4,4,4})[2,1]');
+		assert.strictEqual(array.getElementRowCol(2,2).getValue(), "#N/A", 'Result of IF({FALSE,FALSE;FALSE,FALSE},$A101:$B103,{4,4,4})[2,2]');
+
 
 		//TODO нужна другая функция для тестирования
 		//testArrayFormula2(assert, "IF", 2, 3);
