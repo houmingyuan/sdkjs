@@ -149,6 +149,7 @@
 		this.licenseResult       = null;
 		// Получили ли лицензию
 		this.isOnLoadLicense     = false;
+		this.isRefreshFile     = false;
 		// Переменная, которая отвечает, послали ли мы окончание открытия документа
 		this.isDocumentLoadComplete = false;
 		// Переменная, которая отвечает, послали ли мы окончание открытия документа
@@ -1496,7 +1497,7 @@
 	};
 	baseEditorsApi.prototype._onEndPermissions                   = function()
 	{
-		if (this.isOnLoadLicense) {
+		if (this.isOnLoadLicense && !this.isRefreshFile) {
 			var oResult = new AscCommon.asc_CAscEditorPermissions();
 			if (null !== this.licenseResult) {
 				var type = this.licenseResult['type'];
@@ -1573,7 +1574,10 @@
 				t.disconnectRestrictions = null;
 			}
 
-			t.sendEvent('asc_onServerVersion', buildVersion, buildNumber);
+			if (!this.isRefreshFile) {
+				t.sendEvent('asc_onServerVersion', buildVersion, buildNumber);
+			}
+
 		};
 		this.CoAuthoringApi.onAuthParticipantsChanged = function(users, userId)
 		{
@@ -1843,12 +1847,17 @@
 									if ('ok' === input["status"] || t.getViewMode()) {
 										t._onOpenCommand(documentUrl);
 									} else {
-										t.sendEvent("asc_onDocumentUpdateVersion", function () {
-											if (t.isCoAuthoringEnable) {
-												t.asc_coAuthoringDisconnect();
-											}
-											t._onOpenCommand(documentUrl);
-										})
+										if (t.asc_checkNeedCallback('asc_onRequestRefreshFile')) {
+											t.sync_StartAction(c_oAscAsyncActionType.BlockInteraction, Asc.c_oAscAsyncAction.RefreshFile);
+											t.sendEvent("asc_onRequestRefreshFile");
+										} else {
+											t.sendEvent("asc_onDocumentUpdateVersion", function () {
+												if (t.isCoAuthoringEnable) {
+													t.asc_coAuthoringDisconnect();
+												}
+												t._onOpenCommand(documentUrl);
+											})
+										}
 									}
 								} else {
 									t.sendEvent("asc_onError", c_oAscError.ID.ConvertationOpenError,
@@ -2600,6 +2609,20 @@
 			oApi.VersionHistory.applyChanges(oApi);
 			AscCommon.CollaborativeEditing.Apply_Changes();
 		}
+	};
+	baseEditorsApi.prototype.asc_refreshFile   = function(docInfo) {
+		this.sync_EndAction(c_oAscAsyncActionType.BlockInteraction, Asc.c_oAscAsyncAction.RefreshFile);
+		if (this.isDocumentLoadComplete) {
+			this.asc_CloseFile();
+		}
+
+		this.asc_setDocInfo(docInfo);
+		this.CoAuthoringApi.disconnectQuietly();
+		//todo get rid of isRefreshFile
+		this.isRefreshFile = true;
+		// this.isOnLoadLicense = false;
+		this.CoAuthoringApi = new AscCommon.CDocsCoApi();
+		this._coAuthoringInit();
 	};
 	baseEditorsApi.prototype.asc_undoAllChanges = function()
 	{
@@ -4925,6 +4948,7 @@
 	prot['asc_selectSearchingResults'] = prot.asc_selectSearchingResults;
 	prot['asc_isSelectSearchingResults'] = prot.asc_isSelectSearchingResults;
 	prot['asc_showRevision'] = prot.asc_showRevision;
+	prot['asc_refreshFile'] = prot.asc_refreshFile;
 	prot['asc_getAdvancedOptions'] = prot.asc_getAdvancedOptions;
 	prot['asc_Print'] = prot.asc_Print;
 	prot['asc_GetCurrentColorSchemeName'] = prot.asc_GetCurrentColorSchemeName;

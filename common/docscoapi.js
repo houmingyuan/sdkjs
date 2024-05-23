@@ -357,6 +357,12 @@
     }
   };
 
+  CDocsCoApi.prototype.disconnectQuietly = function(opt_code, opt_reason) {
+    if (this._CoAuthoringApi && this._onlineWork) {
+      this._CoAuthoringApi.disconnectQuietly(opt_code, opt_reason);
+    }
+  };
+
   CDocsCoApi.prototype.extendSession = function(idleTime) {
     if (this._CoAuthoringApi && this._onlineWork) {
       this._CoAuthoringApi.extendSession(idleTime);
@@ -913,6 +919,12 @@
       this._send({"type": "close"});
       this._state = ConnectionState.ClosedCoAuth;
     }
+  };
+
+  DocsCoApi.prototype.disconnectQuietly = function() {
+    // Отключаемся сами
+    this.isCloseCoAuthoring = true;
+    this.socketio.disconnect();
   };
 
   DocsCoApi.prototype.extendSession = function(idleTime) {
