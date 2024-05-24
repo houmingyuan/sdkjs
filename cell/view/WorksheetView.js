@@ -26998,6 +26998,7 @@
 		//bordersFull
 		if (rangeStyle.bordersFull && specialPasteProps.borders) {
 			if (!rangeStyle.bordersFull.isEqual(range.getBorderFull())) {
+				range.setBorderSrc(null);
 				range.setBorder(rangeStyle.bordersFull);
 			}
 		}
