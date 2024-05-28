@@ -17080,6 +17080,14 @@ function RangeDataManagerElem(bbox, data)
 		return this.calcMode;
 	};
 	/**
+	 * Method returns "refMode" attribute specifies the reference style for workbook.
+	 * @memberof CCalcPr
+	 * @returns {null|string}
+	 */
+	CCalcPr.prototype.getRefMode = function () {
+		return this.refMode;
+	};
+	/**
 	 * Method sets "iterate" attribute specifies whether the application should attempt to calculate formulas
 	 * that contain circular references.
 	 * @memberof CCalcPr
@@ -17107,6 +17115,14 @@ function RangeDataManagerElem(bbox, data)
 	CCalcPr.prototype.setIterateDelta = function (nIterateDelta) {
 		const DEFAULT_ITER_DELTA = 1e-3;
 		this.iterateDelta = DEFAULT_ITER_DELTA !== nIterateDelta ? nIterateDelta : null;
+	};
+	/**
+	 * Method sets "refMode" attribute specifies the reference style for workbook.
+	 * @memberof CCalcPr
+	 * @param {boolean} bRefMode
+	 */
+	CCalcPr.prototype.setRefMode = function (bRefMode) {
+		this.refMode = bRefMode ? "R1C1" : null;
 	};
 	/**
 	 * Method updates calcPr attributes

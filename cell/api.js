@@ -4200,6 +4200,7 @@ var editor;
 		AscCommonExcel.g_R1C1Mode = value;
 		if (this.wbModel) {
 			var trueNeedUpdateTarget = this.wb.NeedUpdateTargetForCollaboration;
+			this.wb.updateRefMode(value);
 			this._onUpdateAfterApplyChanges();
 			this.wb._onUpdateSelectionName(true);
 			this.wb.NeedUpdateTargetForCollaboration = trueNeedUpdateTarget;

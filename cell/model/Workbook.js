@@ -5121,7 +5121,27 @@
 		this.oGoalSeek && this.oGoalSeek.step();
 	};
 
+	/**
+	 * Updates reference mode in calcPr object.
+	 * @memberof Workbook
+	 * @param {boolean} bRefMode
+	 */
+	Workbook.prototype.updateRefMode = function (bRefMode) {
+		const oCalcPr = this.calcPr;
+		let bOldRefMode = !!oCalcPr.getRefMode();
 
+		oCalcPr.setRefMode(bRefMode);
+
+		if (History.Is_On()) {
+			let oUpdateSheet = this.getActiveWs();
+			let oUpdateRange = new Asc.Range(0, 0, oUpdateSheet.getColsCount(), oUpdateSheet.getRowsCount());
+
+			if (!!oCalcPr.getRefMode() !== bOldRefMode) {
+				History.Add(AscCommonExcel.g_oUndoRedoWorkbook, AscCH.historyitem_Workbook_CalcPr_refMode,
+					oUpdateSheet.getId(), oUpdateRange, new UndoRedoData_FromTo(bOldRefMode, !!oCalcPr.getRefMode()));
+			}
+		}
+	};
 
 //-------------------------------------------------------------------------------------------------
 	var tempHelp = new ArrayBuffer(8);

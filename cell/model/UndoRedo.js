@@ -2570,6 +2570,8 @@ function (window, undefined) {
 			wb.calcPr.setIterateCount(bUndo ? Data.from : Data.to);
 		} else if (AscCH.historyitem_Workbook_CalcPr_iterateDelta === Type) {
 			wb.calcPr.setIterateDelta(bUndo ? Data.from : Data.to);
+		} else if (AscCH.historyitem_Workbook_CalcPr_refMode === Type) {
+			wb.calcPr.setRefMode(bUndo ? Data.from : Data.to);
 		}
 	};
 	UndoRedoWorkbook.prototype.forwardTransformationIsAffect = function (Type) {

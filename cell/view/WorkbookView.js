@@ -5784,7 +5784,34 @@
 
 		callback();
 	};
+	/**
+	 * Updates reference mode in calcPr
+	 * @memberof WorkbookView
+	 * @param {boolean} bRefMode
+	 */
+	WorkbookView.prototype.updateRefMode = function (bRefMode) {
+		if (this.collaborativeEditing.getGlobalLock() || !window["Asc"]["editor"].canEdit()) {
+			return;
+		}
+		let bRefModeFromCalcPr = !!this.model.calcPr.getRefMode();
+		if (bRefModeFromCalcPr === bRefMode) {
+			return;
+		}
 
+		const ws = this.getWorksheet();
+		const oThis = this;
+		const callback = function (isSuccess) {
+			History.Create_NewPoint();
+			History.StartTransaction();
+			oThis.model.updateRefMode(bRefMode);
+			History.EndTransaction();
+
+			ws._updateRange(new Asc.Range(0, 0, ws.model.getColsCount(), ws.model.getRowsCount()), true);
+			ws.draw();
+		};
+
+		callback();
+	};
 
 	//временно добавляю сюда. в идеале - использовать общий класс из документов(или сделать базовый, от него наследоваться) - CDocumentSearch
 	function CDocumentSearchExcel(wb) {
