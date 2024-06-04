@@ -6607,7 +6607,8 @@ function parserFormula( formula, parent, _ws ) {
 			wasLeftParentheses = false;
 			wasRigthParentheses = false;
 			var found_operator = null;
-
+			
+			let _curArg = argPosArrMap[currentFuncLevel] ? argPosArrMap[currentFuncLevel].length : 0;
 			if (parseResult.operand_expected) {
 				if ('-' === ph.operand_str) {
 					parseResult.operand_expected = true;
@@ -6656,6 +6657,11 @@ function parserFormula( formula, parent, _ws ) {
 			while (0 !== elemArr.length && (found_operator.rightAssociative ? (found_operator.priority < elemArr[elemArr.length - 1].priority) :
 					(found_operator.priority <= elemArr[elemArr.length - 1].priority))) {
 				t.outStack.push(elemArr.pop());
+				// **/
+				if (!associativeArgsObj[_curArg]) {
+					associativeArgsObj[_curArg] = [];
+				}
+				associativeArgsObj[_curArg].push(t.outStack.length - 1);
 			}
 			elemArr.push(found_operator);
 			parseResult.addElem(found_operator);
@@ -6690,6 +6696,7 @@ function parserFormula( formula, parent, _ws ) {
 		};
 
 		var parseRightParentheses = function () {
+			let _curArg = argPosArrMap[currentFuncLevel] ? argPosArrMap[currentFuncLevel].length : 0;
 
 			parseResult.addElem(cFormulaOperators[ph.operand_str].prototype);
 			// parseResult.addElemWithPos(cFormulaOperators[ph.operand_str].prototype);
@@ -6712,7 +6719,12 @@ function parserFormula( formula, parent, _ws ) {
 						return false;
 					}
 					t.outStack.push(elemArr.pop());
-					// TODO check this case
+					// **/
+					if (!associativeArgsObj[_curArg]) {
+						associativeArgsObj[_curArg] = [];
+					}
+					associativeArgsObj[_curArg].push(t.outStack.length - 1);
+					
 				}
 				top_elem_arg_count = leftParentArgumentsCurrentArr[elemArr.length - 1];
 			}
@@ -7702,12 +7714,7 @@ function parserFormula( formula, parent, _ws ) {
 					}
 
 					if (isFoundTrueVal) {
-						// delete rest of the elements from outstack
-						// or
-						// splice outstack once ?
-						// or
-						// note all the rest elements
-						// elemIndexesToSkip.push(...oddArgument, ...evenArgument);
+						// collect into an array the indices of those elements that we will skip during the main calculation
 						elemIndexesToSkip.push.apply(elemIndexesToSkip, oddArgument);
 						elemIndexesToSkip.push.apply(elemIndexesToSkip, evenArgument);
 						continue
@@ -7715,67 +7722,28 @@ function parserFormula( formula, parent, _ws ) {
 
 					let tempStack = [];
 					for (let elemIndex = 0; elemIndex < oddArgument.length; elemIndex++) {
-						let elem = this.outStack[oddArgument[elemIndex]];
-						tempStack.push(elem);
-
-						if("number" === typeof(currentElement)){
-							continue;
-						}
-
-						if (elem.type === cElementType.func || elem.type === cElementType.func) {
-							// TODO push arguments onto the tempCalc stack for the function or baseOperator
-							// add calculation according to reverse polish notation
-							// maybe add recursive PF.calculate() call instead of copying already existed logic
-						}
-
+						let elemInArgument = this.outStack[oddArgument[elemIndex]];
+						tempStack.push(elemInArgument);
 					}
 
-					if (tempStack.length > 0) {
-						let elemToCalc = tempStack[0];
-						elemToCalc = elemToCalc.tocBool();
-						if (elemToCalc.toBool()) {
+					let tempFP = new AscCommonExcel.parserFormula("", null, this.ws);
+					tempFP.outStack = tempStack;
+					
+					let res = tempFP.calculate();
+					if (res) {
+						let elemToCheck = res.tocBool();
+						if (elemToCheck.toBool && elemToCheck.toBool()) {
 							// go to the next odd argument
 							isFoundTrueVal = true;
 							trueValIndex = i;
 						}
 					}
-
-					// if (isFoundTrueVal) {
-					// 	// break
-					// }
-
-				}
-
-				if (false && isFoundTrueVal && trueValIndex !== -1) {
-					let oddArgShift = 2;
-					// let from = trueValIndex + oddArgShift;
-					// let to;
-
-					let argFrom = argsInfo[trueValIndex + oddArgShift];
-					if (argFrom === undefined) {
-						continue
-					}
-					
-					let from = argFrom[argsInfo[trueValIndex + oddArgShift].length - 1];
-
-					let numArgs = Object.keys(argsInfo).map(function(arg) {
-						return parseInt(arg, 10);
-					});
-					let maxArg = Math.max.apply(null, numArgs);
-					let to = Math.max.apply(null, argsInfo[maxArg])
-					let deletedCount = to - from + 1;
-
-					// console.log(from, to);
-					let newArgsNum = numArgs.length - deletedCount;
-					this.outStack[parseInt(obj, 10) - 1] = newArgsNum;
- 					this.outStack.splice(from, deletedCount);
-
 				}
 
 				if (elemIndexesToSkip.length > 0) {
-					
 					let curNumOfArgs = this.outStack[argIndex - 1];
-					let newNumOfArgs = (curNumOfArgs - elemIndexesToSkip.length) > 0 ? (curNumOfArgs - elemIndexesToSkip.length) : curNumOfArgs;
+					// let newNumOfArgs = (curNumOfArgs - elemIndexesToSkip.length) > 0 ? (curNumOfArgs - elemIndexesToSkip.length) : curNumOfArgs;
+					let newNumOfArgs = (curNumOfArgs - (trueValIndex + 1)) > 0 ? (curNumOfArgs - (trueValIndex + 1)) : curNumOfArgs;
 
 					// this.outStack[argIndex - 1] = newNumOfArgs;
 					funcSkipInfo[argIndex] = {newNumOfArgs: newNumOfArgs}
