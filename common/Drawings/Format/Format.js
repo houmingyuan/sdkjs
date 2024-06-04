@@ -17876,8 +17876,39 @@
 			}
 			return true;
 		}
+
+		function CreateShape() {
+			if (Asc.editor.isPdfEditor()) {
+				return new AscPDF.CPdfShape();
+			}
+			else {
+				return new AscFormat.CShape();
+			}
+		}
+
+		function CreateGraphicFrame() {
+			if (Asc.editor.isPdfEditor()) {
+				return new AscPDF.CPdfGraphicFrame();
+			}
+			else {
+				return new AscFormat.CGraphicFrame();
+			}
+		}
+
+		function CreateImage() {
+			if (Asc.editor.isPdfEditor()) {
+				return new AscPDF.CPdfImage();
+			}
+			else {
+				return new AscFormat.CImageShape();
+			}
+		}
+
 //----------------------------------------------------------export----------------------------------------------------
 		window['AscFormat'] = window['AscFormat'] || {};
+		window['AscFormat'].CreateShape = CreateShape;
+		window['AscFormat'].CreateGraphicFrame = CreateGraphicFrame;
+		window['AscFormat'].CreateImage = CreateImage;
 		window['AscFormat'].CreateFontRef = CreateFontRef;
 		window['AscFormat'].CreatePresetColor = CreatePresetColor;
 		window['AscFormat'].isRealNumber = isRealNumber;

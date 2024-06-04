@@ -22172,7 +22172,7 @@
 			bWord = true;
 
 		var dAngle = nRotAngle !== 0 ? (Math.PI / 180) * nRotAngle : 0;
-		var oArt = new AscFormat.CShape();
+		var oArt = AscFormat.CreateShape();
 
 		oArt.setWordShape(bWord === true);
 		oArt.setBDeleted(false);

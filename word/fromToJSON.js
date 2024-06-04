@@ -13300,7 +13300,7 @@
 	};
 	ReaderFromJSON.prototype.GraphicFrameFromJSON = function(oParsedGraphFrame)
 	{
-		var oGraphicFrame = new AscFormat.CGraphicFrame();
+		var oGraphicFrame = AscFormat.CreateGraphicFrame();
 
 		if (oParsedGraphFrame["nvGraphicFramePr"])
 		{
@@ -13536,7 +13536,7 @@
 	};
 	ReaderFromJSON.prototype.ShapeFromJSON = function(oParsedShape, oParentDrawing)
 	{
-		var oShape = oParsedShape["type"] === "shape" ? new AscFormat.CShape() : new AscFormat.CConnectionShape();
+		var oShape = oParsedShape["type"] === "shape" ? AscFormat.CreateShape() : new AscFormat.CConnectionShape();
 
 		if (oParentDrawing)
 		{
@@ -13621,7 +13621,7 @@
 	};
 	ReaderFromJSON.prototype.ImageFromJSON = function(oParsedImage, oParentDrawing)
 	{
-		var oImage = new AscFormat.CImageShape();
+		var oImage = AscFormat.CreateImage();
 
 		if (oParentDrawing)
 		{

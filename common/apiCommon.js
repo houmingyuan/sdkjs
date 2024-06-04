@@ -5086,7 +5086,7 @@ function (window, undefined) {
 
 			AscFormat.ExecuteNoHistory(function (obj) {
 
-				let oShape = new AscFormat.CShape();
+				let oShape = AscFormat.CreateShape();
 				let bWord = false;
 				let oApi = Asc['editor'] || editor;
 				if (!oApi) {

@@ -4704,7 +4704,7 @@
                     }
                 };
 
-                const oShape = new AscFormat.CShape();
+                const oShape = AscFormat.CreateShape();
                 oShape.setWorksheet(t.model);
                 oShape.createTextBody();
                 let oBodyPr = oShape.txBody.bodyPr;

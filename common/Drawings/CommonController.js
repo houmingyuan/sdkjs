@@ -8216,7 +8216,7 @@
 
 
 				createImage: function (rasterImageId, x, y, extX, extY, sVideoUrl, sAudioUrl) {
-					var image = Asc.editor.isPdfEditor() ? new AscPDF.CPdfImage() : new AscFormat.CImageShape();
+					var image = AscFormat.CreateImage();
 					AscFormat.fillImage(image, rasterImageId, x, y, extX, extY, sVideoUrl, sAudioUrl);
 					return image;
 				},
@@ -8246,7 +8246,7 @@
 						MainLogicDocument.SetLocalTrackRevisions(false);
 					}
 
-					var oShape = Asc.editor.isPdfEditor() ? new AscPDF.CPdfShape() : new AscFormat.CShape();
+					var oShape = AscFormat.CreateShape();
 					oShape.setWordShape(bWord === true);
 					oShape.setBDeleted(false);
 					if (wsModel)
@@ -10194,7 +10194,7 @@
 
 
 		function fCreateSignatureShape(oPr, bWord, wsModel, Width, Height, sImgUrl) {
-			var oShape = new AscFormat.CShape();
+			var oShape = AscFormat.CreateShape();
 			oShape.setWordShape(bWord === true);
 			oShape.setBDeleted(false);
 			if (wsModel)

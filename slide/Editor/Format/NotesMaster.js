@@ -248,7 +248,7 @@
         oBG.bgRef = oBgRef;
         oNM.changeBackground(oBG);
 
-        var oSp = new AscFormat.CShape();
+        var oSp = AscFormat.CreateShape();
         oSp.setBDeleted(false);
         var oNvSpPr = new AscFormat.UniNvPr();
         var oCNvPr = oNvSpPr.cNvPr;
@@ -290,7 +290,7 @@
         oNM.addToSpTreeToPos(0, oSp);
         //endParaPr
 
-        oSp = new AscFormat.CShape();
+        oSp = AscFormat.CreateShape();
         oSp.setBDeleted(false);
         oNvSpPr = new AscFormat.UniNvPr();
         oCNvPr = oNvSpPr.cNvPr;
@@ -332,7 +332,7 @@
         oSp.setParent(oNM);
         oNM.addToSpTreeToPos(1, oSp);
 
-        oSp = new AscFormat.CShape();
+        oSp = AscFormat.CreateShape();
         oSp.setBDeleted(false);
         oNvSpPr = new AscFormat.UniNvPr();
         oCNvPr = oNvSpPr.cNvPr;
@@ -374,7 +374,7 @@
         oSp.setParent(oNM);
         oNM.addToSpTreeToPos(2, oSp);
 
-        oSp = new AscFormat.CShape();
+        oSp = AscFormat.CreateShape();
         oSp.setBDeleted(false);
         oNvSpPr = new AscFormat.UniNvPr();
         oCNvPr = oNvSpPr.cNvPr;
@@ -413,7 +413,7 @@
         oSp.setParent(oNM);
         oNM.addToSpTreeToPos(3, oSp);
 
-        oSp = new AscFormat.CShape();
+        oSp = AscFormat.CreateShape();
         oSp.setBDeleted(false);
         oNvSpPr = new AscFormat.UniNvPr();
         oCNvPr = oNvSpPr.cNvPr;
@@ -456,7 +456,7 @@
         oSp.setParent(oNM);
         oNM.addToSpTreeToPos(4, oSp);
 
-        oSp = new AscFormat.CShape();
+        oSp = AscFormat.CreateShape();
         oSp.setBDeleted(false);
         oNvSpPr = new AscFormat.UniNvPr();
         oCNvPr = oNvSpPr.cNvPr;

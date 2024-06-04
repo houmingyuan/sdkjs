@@ -966,7 +966,7 @@
     CGeometryTextureMorph.prototype.createShape = function (oGeometry, oBrush, oPen, oTransform) {
         return AscFormat.ExecuteNoHistory(function() {
             AscCommon.g_oTableId.TurnOn();
-            const oShape = new AscFormat.CShape();
+            const oShape = AscFormat.CreateShape();
             AscCommon.g_oTableId.TurnOff();
             oShape.checkEmptySpPrAndXfrm(null);
             oShape.calcGeometry = oGeometry;

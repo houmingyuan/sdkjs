@@ -297,7 +297,7 @@
         oDrawing.Set_WrappingType(WRAPPING_TYPE_SQUARE);
         oDrawing.Set_DrawingType(drawing_Inline);
         
-        let oImgShape = new AscFormat.CImageShape();
+        let oImgShape = AscFormat.CreateImage();
         AscFormat.fillImage(oImgShape, oImgData.src, 0, 0, dDrawingW, dDrawingH);
 
         oImgShape.setParent(oDrawing);

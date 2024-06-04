@@ -2119,7 +2119,7 @@ CopyProcessor.prototype =
 			this.CopyTable(oDomTarget, Item, aSelectedRows);
 		}
 		History.TurnOff();
-		var graphic_frame = new AscFormat.CGraphicFrame(graphicFrame.parent);
+		var graphic_frame = AscFormat.CreateGraphicFrame();
 		var grid = [];
 
 		for (var i = nMinGrid; i <= nMaxGrid; ++i) {
@@ -4333,7 +4333,7 @@ PasteProcessor.prototype =
 					//TODO переделать количество строк и ширину
 					var W = 100;
 					var Rows = 3;
-					var graphic_frame = new AscFormat.CGraphicFrame();
+					var graphic_frame = AscFormat.CreateGraphicFrame();
 					graphic_frame.setSpPr(new AscFormat.CSpPr());
 					graphic_frame.spPr.setParent(graphic_frame);
 					graphic_frame.spPr.setXfrm(new AscFormat.CXfrm());
@@ -4526,7 +4526,7 @@ PasteProcessor.prototype =
 					var W = oThis.oDocument.GetWidthMM() / 1.45;
 					var Rows = element.GetRowsCount();
 					var H = Rows * 7.478268771701388;
-					var graphic_frame = new AscFormat.CGraphicFrame();
+					var graphic_frame = AscFormat.CreateGraphicFrame();
 					graphic_frame.setSpPr(new AscFormat.CSpPr());
 					graphic_frame.spPr.setParent(graphic_frame);
 					graphic_frame.spPr.setXfrm(new AscFormat.CXfrm());
@@ -6620,8 +6620,7 @@ PasteProcessor.prototype =
 	},
 
 	_createNewPresentationTable: function (grid) {
-		var presentation = editor.WordControl.m_oLogicDocument;
-		var graphicFrame = new CGraphicFrame(presentation.Slides[presentation.CurPage]);
+		var graphicFrame = AscFormat.CreateGraphicFrame();
 		var table = new CTable(this.oDocument.DrawingDocument, graphicFrame, false, 0, 0, grid, true);
 		table.SetTableLayout(tbllayout_Fixed);
 		graphicFrame.setGraphicObject(table);

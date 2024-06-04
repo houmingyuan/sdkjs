@@ -4142,15 +4142,15 @@ var CPresentation = CPresentation || function(){};
 
                 switch (oXmlReader.GetName()) {
                     case 'p:sp': {
-                        oDrawing = new AscPDF.CPdfShape();
+                        oDrawing = AscFormat.CreateShape();
                         break;
                     }
                     case 'p:graphicFrame': {
-                        oDrawing = new AscPDF.CPdfGraphicFrame();
+                        oDrawing = AscFormat.CreateGraphicFrame();
                         break;
                     }
                     case 'p:pic': {
-                        oDrawing = new AscPDF.CPdfImage();
+                        oDrawing = AscFormat.CreateImage();
                         break;
                     }
                 }
@@ -4492,7 +4492,7 @@ var CPresentation = CPresentation || function(){};
             Inline = bInline;
 	    }
 
-        let graphic_frame = new AscPDF.CPdfGraphicFrame();
+        let graphic_frame = AscFormat.CreateGraphicFrame();
         graphic_frame.setSpPr(new AscFormat.CSpPr());
         graphic_frame.spPr.setParent(graphic_frame);
         graphic_frame.spPr.setXfrm(new AscFormat.CXfrm());
@@ -4692,7 +4692,7 @@ var CPresentation = CPresentation || function(){};
             let nCenterX = (nPageW - nNewExtX) / 2;
             let nCenterY = (nPageH - nNewExtY) / 2;
 
-            let oImage = new AscPDF.CPdfImage();
+            let oImage = AscFormat.CreateImage();
 
             AscFormat.fillImage(oImage, _image.src, nCenterX, nCenterY, nNewExtX, nNewExtY, _image.videoUrl, _image.audioUrl);
             this.AddDrawing(oImage, nCurPage);

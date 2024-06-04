@@ -6351,7 +6351,7 @@ function BinaryPPTYLoader()
     {
         var s = this.stream;
 
-        var shape = Asc.editor.isPdfEditor() ? new AscPDF.CPdfShape(this.TempMainObject) : new AscFormat.CShape(this.TempMainObject);
+        var shape = AscFormat.CreateShape();
 
         var _rec_start = s.cur;
         var _end_rec = _rec_start + s.GetULong() + 4;
@@ -6741,10 +6741,7 @@ function BinaryPPTYLoader()
         }
         else
         {
-            if (Asc.editor.isPdfEditor())
-                pic = new AscPDF.CPdfImage();
-            else
-                pic = new AscFormat.CImageShape(this.TempMainObject);
+            pic = AscFormat.CreateImage();
         }
 
         pic.setBDeleted(false);
@@ -6950,7 +6947,7 @@ function BinaryPPTYLoader()
                 case 0:
                 {
                     _nvGraphicFramePr = this.ReadNvUniProp(AscFormat.ExecuteNoHistory(function () {
-                        return new AscFormat.CGraphicFrame();
+                        return AscFormat.CreateGraphicFrame();
                     }, this, []));
                     break;
                 }
@@ -7023,7 +7020,7 @@ function BinaryPPTYLoader()
         var _rec_start = s.cur;
         var _end_rec = _rec_start + s.GetULong() + 4;
 
-        var _graphic_frame = Asc.editor.isPdfEditor() ? new AscPDF.CPdfGraphicFrame() : new AscFormat.CGraphicFrame();
+        var _graphic_frame = AscFormat.CreateGraphicFrame();
         _graphic_frame.setParent2(this.TempMainObject);
         this.TempGroupObject = _graphic_frame;
 
@@ -10524,7 +10521,7 @@ function BinaryPPTYLoader()
         {
             var s = this.stream;
 
-            var shape = new AscFormat.CShape();
+            var shape = AscFormat.CreateShape();
             shape.setWordShape(true);
             shape.setBDeleted(false);
             shape.setParent(this.TempMainObject == null ? this.ParaDrawing : null);
@@ -10690,7 +10687,7 @@ function BinaryPPTYLoader()
                 oRet.setSpPr(oSpPr);
                 oSpPr.setParent(oRet);
                 oRet.addToSpTree(0, shape);
-                var oShape2 = new AscFormat.CShape();
+                var oShape2 = AscFormat.CreateShape();
                 var oSpPr2 = new AscFormat.CSpPr();
                 oShape2.setSpPr(oSpPr2);
                 oSpPr2.setParent(oShape2);
@@ -10786,7 +10783,7 @@ function BinaryPPTYLoader()
             var s = this.stream;
 
             var isOle = (type === 6);
-            var pic = isOle ? new AscFormat.COleObject() : new AscFormat.CImageShape();
+            var pic = isOle ? new AscFormat.COleObject() : AscFormat.CreateImage();
             pic.setBDeleted(false);
             pic.setParent(this.TempMainObject == null ? this.ParaDrawing : null);
 

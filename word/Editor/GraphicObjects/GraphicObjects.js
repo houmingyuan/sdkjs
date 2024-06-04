@@ -506,7 +506,7 @@ CGraphicObjects.prototype =
         else
         {
             var oTextPropMenu = oProps.get_TextPr();
-            oDrawing = new AscFormat.CShape();
+            oDrawing = AscFormat.CreateShape();
             oDrawing.setWordShape(true);
             oDrawing.setBDeleted(false);
             oDrawing.createTextBoxContent();

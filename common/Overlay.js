@@ -3416,7 +3416,7 @@
 
 	function DrawTextByCenter() // this!
 	{
-		var shape = new AscFormat.CShape();
+		var shape = AscFormat.CreateShape();
 		shape.setTxBody(AscFormat.CreateTextBodyFromString("", this, shape));
 		var par = shape.txBody.content.Content[0];
 		par.Reset(0, 0, 1000, 1000, 0);

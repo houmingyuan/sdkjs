@@ -1658,7 +1658,7 @@
         let yMin = aShapeBounds[1];
         let yMax = aShapeBounds[3];
 
-        let oShape = oExistShape ? oExistShape : new AscPDF.CPdfShape();
+        let oShape = AscFormat.CreateShape();
         if (!oExistShape) {
             oShape.setSpPr(new AscFormat.CSpPr());
             oShape.spPr.setParent(oShape);

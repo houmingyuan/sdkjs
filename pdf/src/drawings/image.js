@@ -52,9 +52,11 @@
     CPdfImage.prototype.IsInTextBox = function() {
         return false;
     };
+
     CPdfImage.prototype.GetDocContent = function() {
         return null;
     };
+    
     CPdfImage.prototype.Recalculate = function() {
         if (this.IsNeedRecalc() == false)
             return;
@@ -66,6 +68,7 @@
         this.recalculateShdw();
         this.SetNeedRecalc(false);
     };
+    
     CPdfImage.prototype.onMouseDown = function(x, y, e) {
         let oViewer             = Asc.editor.getDocumentRenderer();
         let oDoc                = this.GetDocument();

@@ -3117,7 +3117,7 @@ CInlineLevelSdt.prototype.ConvertFormToFixed = function(nW, nH)
 };
 CInlineLevelSdt.prototype.private_ConvertFormToFixed = function(nW, nH)
 {
-	var oShape = new AscFormat.CShape();
+	var oShape = AscFormat.CreateShape();
 	oShape.setWordShape(true);
 	oShape.setBDeleted(false);
 

@@ -131,7 +131,7 @@
 		};
 
 		CImageShape.prototype.copy = function (oPr) {
-			var copy = new CImageShape();
+			var copy = AscFormat.CreateImage();
 
 			if (this.nvPicPr) {
 				copy.setNvPicPr(this.nvPicPr.createDuplicate());

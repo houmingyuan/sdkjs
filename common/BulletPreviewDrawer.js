@@ -246,7 +246,7 @@
 
 	CBulletPreviewDrawerBase.prototype.getParagraphWithText = function (sText, oTextPr)
 	{
-		const oShape = new AscFormat.CShape();
+		const oShape = AscFormat.CreateShape();
 		oShape.createTextBody();
 		const oParagraph = oShape.txBody.content.GetAllParagraphs()[0];
 		oParagraph.MoveCursorToStartPos();
@@ -519,7 +519,7 @@
 	{
 		const sText = oLvl.GetDrawingContent([oLvl], 0, undefined, this.m_oLang);
 		if (typeof sText !== "string") return;
-		const oNewShape = new AscFormat.CShape();
+		const oNewShape = AscFormat.CreateShape();
 		oNewShape.createTextBody();
 		oNewShape.extX = nMaxWidth;
 		oNewShape.extY = nMaxHeight;

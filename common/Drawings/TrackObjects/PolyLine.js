@@ -199,7 +199,7 @@ function PolyLine (drawingObjects, theme, master, layout, slide, pageIndex)
 
 
 
-        var shape = Asc.editor.isPdfEditor() ? new AscPDF.CPdfShape() : new AscFormat.CShape();
+        var shape = AscFormat.CreateShape();
 
         //  if(drawingObjects)
         //  {

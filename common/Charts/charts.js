@@ -1169,7 +1169,7 @@ TextArtPreviewManager.prototype.getShapeByPrst = function(prst)
 };
 TextArtPreviewManager.prototype.getShape =  function()
 {
-	var oShape = new AscFormat.CShape();
+	var oShape = AscFormat.CreateShape();
 	var oParent = null, oWorkSheet = null;
 	var bWord = true;
 	if (Asc['editor'] && AscCommon.c_oEditorId.Spreadsheet === Asc['editor'].getEditorId()) {

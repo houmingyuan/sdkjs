@@ -290,7 +290,7 @@
 	};
 
 	CGraphicFrame.prototype.copy = function (oPr) {
-		var ret = new CGraphicFrame();
+		var ret = AscFormat.CreateGraphicFrame();
 		if (this.graphicObject) {
 			ret.setGraphicObject(this.graphicObject.Copy(ret));
 			if (editor && editor.WordControl && editor.WordControl.m_oLogicDocument && isRealObject(editor.WordControl.m_oLogicDocument.globalTableStyles)) {
@@ -1207,7 +1207,7 @@
 		Graphic.GraphicData.graphicObject = oDrawing;
 
 		let newGraphicObject = AscFormat.ExecuteNoHistory(function () {
-			return new AscFormat.CGraphicFrame();
+			return AscFormat.CreateGraphicFrame();
 		}, this, []);
 		newGraphicObject.spPr = oDrawing.spPr;
 		newGraphicObject.graphicObject = Graphic;

@@ -644,7 +644,7 @@
 		}
 
 		function ConvertTableToGraphicFrame(oTable, oPresentation) {
-			var oGraphicFrame = new AscFormat.CGraphicFrame();
+			var oGraphicFrame = AscFormat.CreateGraphicFrame();
 			var oTable2 = new CTable(oPresentation.DrawingDocument, oGraphicFrame, false, 0, [].concat(oTable.TableGrid), oTable.TableGrid.length, true);
 			oTable2.Reset(0, 0, 50, 100000, 0, 0, 1);
 			oTable2.SetTableLayout(tbllayout_Fixed);
@@ -1057,54 +1057,6 @@
 
 		CShape.prototype.convertToPPTX = function (drawingDocument, worksheet, bIsAddMath) {
 			let c = new CShape();
-			c.setWordShape(false);
-			c.setBDeleted(false);
-			c.setWorksheet(worksheet);
-			if (this.nvSpPr) {
-				c.setNvSpPr(this.nvSpPr.createDuplicate());
-			}
-			if (this.spPr) {
-				c.setSpPr(this.spPr.createDuplicate());
-				c.spPr.setParent(c);
-			}
-			if (this.style) {
-				c.setStyle(this.style.createDuplicate());
-			}
-			if (this.textBoxContent) {
-				let tx_body = new AscFormat.CTextBody();
-				tx_body.setParent(c);
-				if (this.bodyPr) {
-					tx_body.setBodyPr(this.bodyPr.createDuplicate());
-				}
-				let new_content = new AscFormat.CDrawingDocContent(tx_body, drawingDocument, 0, 0, 0, 0, false, false, true);
-				let aContent = this.textBoxContent.Content;
-				let aNewParagraphs = [];
-				for (let nIdx = 0; nIdx < aContent.length; ++nIdx) {
-					let oCurElement = aContent[nIdx];
-					if (oCurElement instanceof AscWord.Paragraph) {
-						let oParagraph = ConvertParagraphToPPTX(oCurElement, drawingDocument, new_content, bIsAddMath);
-						aNewParagraphs.push(oParagraph);
-					}
-				}
-				if (aNewParagraphs.length > 0) {
-					new_content.Internal_Content_RemoveAll();
-					for (let nIdx = 0; nIdx < aNewParagraphs.length; ++nIdx) {
-						let oParagraph = aNewParagraphs[nIdx];
-						new_content.Internal_Content_Add(nIdx, oParagraph, false);
-					}
-				}
-				tx_body.setContent(new_content);
-				c.setTxBody(tx_body);
-			}
-			if (worksheet) {
-				if (this.signatureLine) {
-					c.setSignature(this.signatureLine.copy());
-				}
-			}
-			return c;
-		};
-		CShape.prototype.convertToPdf = function (drawingDocument, worksheet, bIsAddMath) {
-			let c = new AscPDF.CPdfShape();
 			c.setWordShape(false);
 			c.setBDeleted(false);
 			c.setWorksheet(worksheet);
@@ -2126,7 +2078,7 @@
 					}
 				}
 				var oRect = this.getTextRect();
-				var oRectShape = new AscFormat.CShape();
+				var oRectShape = AscFormat.CreateShape();
 				oRectShape.setBDeleted(false);
 				oRectShape.setSpPr(new AscFormat.CSpPr());
 				oRectShape.spPr.setParent(oRectShape);
@@ -2135,7 +2087,7 @@
 
 				var defaultRot = this.getDefaultRotSA();
 				var deltaRot = AscFormat.normalizeRotate(this.rot - defaultRot);
-				var deltaShape = new AscFormat.CShape();
+				var deltaShape = AscFormat.CreateShape();
 				deltaShape.setBDeleted(false);
 				deltaShape.setSpPr(new AscFormat.CSpPr());
 				deltaShape.spPr.setParent(deltaShape);

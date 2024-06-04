@@ -344,7 +344,7 @@
 
     function CreateNotes(){
         var oN = new CNotes();
-        var oSp = new AscFormat.CShape();
+        var oSp = AscFormat.CreateShape();
         oSp.setBDeleted(false);
         var oNvSpPr = new AscFormat.UniNvPr();
         var oCNvPr = oNvSpPr.cNvPr;
@@ -362,7 +362,7 @@
         oSp.setParent(oN);
         oN.addToSpTreeToPos(0, oSp);
 
-        oSp = new AscFormat.CShape();
+        oSp = AscFormat.CreateShape();
         oSp.setBDeleted(false);
         oNvSpPr = new AscFormat.UniNvPr();
         oCNvPr = oNvSpPr.cNvPr;
@@ -384,7 +384,7 @@
         oSp.setParent(oN);
         oN.addToSpTreeToPos(1, oSp);
 
-        oSp = new AscFormat.CShape();
+        oSp = AscFormat.CreateShape();
         oSp.setBDeleted(false);
         oNvSpPr = new AscFormat.UniNvPr();
         oCNvPr = oNvSpPr.cNvPr;

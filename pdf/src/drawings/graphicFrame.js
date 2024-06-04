@@ -49,7 +49,7 @@
         return true;
     };
     CPdfGraphicFrame.prototype.copy = function (oPr) {
-        let ret = new CPdfGraphicFrame();
+        let ret = AscFormat.CreateGraphicFrame();
         let oDoc = Asc.editor.getPDFDoc();
         if (this.graphicObject) {
             ret.setGraphicObject(this.graphicObject.Copy(ret));

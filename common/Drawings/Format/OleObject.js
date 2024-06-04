@@ -408,7 +408,7 @@ function (window, undefined) {
                 return null;
             }
         }
-        const oShape = new AscFormat.CShape();
+        const oShape = AscFormat.CreateShape();
         oShape.setBDeleted(false);
         if(this.worksheet)
             oShape.setWorksheet(this.worksheet);
