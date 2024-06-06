@@ -28699,6 +28699,10 @@ $(function () {
 		assert.strictEqual(array.getElementRowCol(1,1).getValue(), "#N/A", 'Result of IFS(FALSE,"dsds",{FALSE,TRUE;TRUE,FALSE},1)[1,1]');
 		ws.getRange2("A100:C110").cleanAll();
 
+		oParser = new parserFormula('IFS(1,2,7,8,9,10,11,12)', "AA2", ws);
+		assert.ok(oParser.parse(), 'IFS(1,2,7,8,9,10,11,12)');
+		assert.strictEqual(oParser.calculate().getValue(), 2, 'Result of IFS(1,2,7,8,9,10,11,12)');
+
 		// testArrayFormulaEqualsValues(assert, "1,3.123,-4,#N/A;2,4,5,#N/A;#N/A,#N/A,#N/A,#N/A", "IFS(A1:C2,A1:C2,A1:C2,A1:C2, A1:C2,A1:C2)");
 	});
 

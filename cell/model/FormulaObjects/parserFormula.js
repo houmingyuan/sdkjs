@@ -6691,6 +6691,10 @@ function parserFormula( formula, parent, _ws ) {
 				}
 			}
 
+			if (argFuncMap[currentFuncLevel] && argPosArrMap[currentFuncLevel]) {
+				// reset array with elem indexes in argument for subsequent assignment to another function
+				associativeArgsObj = [];
+			}
 			argFuncMap[currentFuncLevel] = {count: 0, startPos: ph.pCurrPos + 1};
 			argPosArrMap[currentFuncLevel] = [{start: ph.pCurrPos + 1}];
 		};
@@ -6820,12 +6824,9 @@ function parserFormula( formula, parent, _ws ) {
 				if (!associativeArgsObj[_curArg]) {
 					associativeArgsObj[_curArg] = [];
 				}
-				// associativeArgsArray[_curArg].push(t.outStack.length - 1);
-				// if (!associativeFunctionsObj[t.outStack.length - 1]) {
-				// 	associativeFunctionsObj[t.outStack.length - 1] = {};
-				// }
 
-				associativeFunctionsObj[t.outStack.length - 1] = associativeArgsObj;
+				// associativeFunctionsObj[t.outStack.length - 1] = associativeArgsObj;
+				associativeFunctionsObj[t.outStack.length - 1] = Object.assign({}, associativeArgsObj);
 
 				if (!parseResult.allFunctionsPos) {
 					parseResult.allFunctionsPos = [];
@@ -6842,8 +6843,8 @@ function parserFormula( formula, parent, _ws ) {
 			wasLeftParentheses = false;
 			wasRigthParentheses = false;
 			let stackLength = elemArr.length, top_elem = null, top_elem_arg_pos;
-			let _curFunc = levelFuncMap[currentFuncLevel].func;
-			let _curArg = argPosArrMap[currentFuncLevel].length;
+			let _curFunc = levelFuncMap[currentFuncLevel] ? levelFuncMap[currentFuncLevel].func : null;
+			let _curArg = argPosArrMap[currentFuncLevel] ? argPosArrMap[currentFuncLevel].length : 0;
 
 			if (elemArr.length !== 0 && elemArr[stackLength - 1].name === "(" &&
 				((!elemArr[stackLength - 2]) || (elemArr[stackLength - 2] && elemArr[stackLength - 2].type !== cElementType.func))) {
@@ -7369,17 +7370,13 @@ function parserFormula( formula, parent, _ws ) {
 				// associativeArgsArray
 				let _curFunc = levelFuncMap[currentFuncLevel] ? levelFuncMap[currentFuncLevel].func : null;
 				let _curArg = argPosArrMap[currentFuncLevel] ? argPosArrMap[currentFuncLevel].length : 0;
+				// TODO для каждой функции свой объект с аргументами
+				// levelFuncMap[currentFuncLevel].startPos !== levelFuncMap[currentFuncLevel].startPos
 				if (!associativeArgsObj[_curArg]) {
 					associativeArgsObj[_curArg] = [];
 				}
 				associativeArgsObj[_curArg].push(t.outStack.length - 1);
 
-				// if (!associativeArgsObj.length < _curArg) {
-				// 	associativeArgsObj.push = [];
-				// }
-				// if (_curFunc && _curFunc.name === "IFS") {
-				// 	associativeArgsObj.push(t.outStack.length - 1);
-				// }
 
 			} else {
 				t.outStack.push(new cError(cErrorType.wrong_name));
@@ -7702,7 +7699,7 @@ function parserFormula( formula, parent, _ws ) {
 		if (this.associativeFunctionsObj) {
 			for (let obj in this.associativeFunctionsObj) {
 				let argsInfo = this.associativeFunctionsObj[obj];
-				let argIndex = parseInt(obj, 10);
+				let functionIndex = parseInt(obj, 10);
 				// take elements from stack, and calculate only odd arguments
 				// if one of the arg is true, remove the rest of arguments from stack by it's id(position in outStack)
 				let isFoundTrueVal, trueValIndex = -1;
@@ -7741,12 +7738,10 @@ function parserFormula( formula, parent, _ws ) {
 				}
 
 				if (elemIndexesToSkip.length > 0) {
-					let curNumOfArgs = this.outStack[argIndex - 1];
-					// let newNumOfArgs = (curNumOfArgs - elemIndexesToSkip.length) > 0 ? (curNumOfArgs - elemIndexesToSkip.length) : curNumOfArgs;
-					let newNumOfArgs = (curNumOfArgs - (trueValIndex + 1)) > 0 ? (curNumOfArgs - (trueValIndex + 1)) : curNumOfArgs;
+					let curNumOfArgs = this.outStack[functionIndex - 1];
+					let newNumOfArgs = (curNumOfArgs - (trueValIndex + 1)) > 0 ? (trueValIndex + 1) : curNumOfArgs;
 
-					// this.outStack[argIndex - 1] = newNumOfArgs;
-					funcSkipInfo[argIndex] = {newNumOfArgs: newNumOfArgs}
+					funcSkipInfo[functionIndex] = {newNumOfArgs: newNumOfArgs}
 				}
 			}
 
