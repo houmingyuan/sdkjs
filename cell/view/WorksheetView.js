@@ -2530,6 +2530,7 @@
 
 	WorksheetView.prototype._calcHeightRow = function (y, i) {
 		var r, hR;
+		let t = this;
 		this.model._getRowNoEmptyWithAll(i, function (row) {
 			if (!row) {
 				hR = -1; // Будет использоваться дефолтная высота строки
@@ -2539,6 +2540,14 @@
 				// Берем высоту из модели, если она custom(баг 15618), либо дефолтную
 				if (row.h > 0 && (row.getCustomHeight() || row.getCalcHeight())) {
 					hR = row.h;
+				} else if (row.xfs && row.xfs.font) {
+					hR = -1;
+					let strCopy = new AscCommonExcel.Fragment();
+					strCopy.format = row.xfs.font;
+					strCopy = strCopy.clone();
+					strCopy.setFragmentText('A');
+					let tm = t._roundTextMetrics(t.stringRender.measureString([strCopy]));
+					hR =  AscCommonExcel.convertPxToPt(tm.height);
 				} else {
 					hR = -1;
 				}

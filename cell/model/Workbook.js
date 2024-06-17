@@ -16656,9 +16656,9 @@
 					actionCol(col);
 			}
 		}
-		if(null != actionCell) {
+		if (null != actionCell) {
 			this._foreachNoEmpty(actionCell);
-						}
+		}
 	};
 	Range.prototype._foreachColNoEmpty=function(actionCol, actionCell){
 		var oBBox = this.bbox;
