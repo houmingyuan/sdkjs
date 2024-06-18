@@ -1828,8 +1828,66 @@
         }
     };
 
+	/* Checking whether there are values ​​in the range that can be used in the autocomplete formula */
+	WorksheetView.prototype._getAutocompleteValues = function () {
+		const t = this;
+		let cell, cellType, exist = false, setCols = {}, setRows = {};
+        let selection = this.model.getSelection();
+        let selectionRange = selection.getLast();
+        let mergedRange = this.model.getMergedByCell(selectionRange.r1, selectionRange.c1);
+        if (mergedRange && mergedRange.isEqual(selectionRange)) {
+            // There is no need to do anything for one cell
+            return null;
+        }
+
+        if (c_oAscSelectionType.RangeMax === selectionRange.getType()) {
+            return null;
+        }
+
+		console.log(Asc.c_oAscNumFormatType);
+        let c2 = Math.min(selectionRange.c2, this.nColsCount - 1);
+        let r2 = Math.min(selectionRange.r2, this.nRowsCount - 1);
+		for (let c = selectionRange.c1; c <= c2; ++c) {
+            for (let r = selectionRange.r1; r <= r2; ++r) {
+				// if general, check real val
+				this.model._getCellNoEmpty(r, c, function (cell) {
+					let xfs = cell ? cell.getCompiledStyle() : t.model.getCompiledStyle(r, c);
+					let numFormatStr, info;
+					if (xfs && xfs.num) {
+						numFormatStr = xfs.num.getNumFormat();
+						info = xfs.asc_getNumFormatInfo();
+					}
+					if (cell && !cell.isNullText() && cell.type !== CellValueType.String) {
+						if (!info) {
+							exist = setRows[r] = setCols[c] = true;
+						} else if (info && info.type !== Asc.c_oAscNumFormatType.Date 
+							&& info.type !== Asc.c_oAscNumFormatType.LongDate 
+							&& info.type !== Asc.c_oAscNumFormatType.None 
+							&& info.type !== Asc.c_oAscNumFormatType.Text) {
+								exist = setRows[r] = setCols[c] = true;
+						}
+					}
+				});
+            }
+        }
+
+		if (exist) {
+			// Making arrays unique and sorting
+			let i, arrCols = [], arrRows = [];
+			for(i in setCols) {
+				arrCols.push(+i);
+			}
+			for(i in setRows) {
+				arrRows.push(+i);
+			}
+			return {arrCols: arrCols.sort(fSortAscending), arrRows: arrRows.sort(fSortAscending)};
+		} else {
+			return null;
+		}
+	}
+
     // Autocomplete formula with range if possible
-    WorksheetView.prototype.autoCompleteFormula = function (functionName) {
+    WorksheetView.prototype.autoCompleteFormula = function (functionName, callFromWizard) {
         const t = this;
         // ToDo autoComplete with multiselect
         let selection = this.model.getSelection();
@@ -1848,7 +1906,9 @@
         let cell, cellType, isNumberFormat;
         let result = {};
         // Get all numeric values ​​in the range
-        let hasNumber = this._getValuesPositionsInRange(true);
+        // let hasNumber = this._getValuesPositionsInRange(true);
+		let hasNumber = this._getAutocompleteValues();
+
         // Get all non-empty values ​​in the range
         let realValues = this._getValuesPositionsInRange();
         let val, text;
@@ -1869,7 +1929,7 @@
         let firstCell = this._getCellTextCache(ar.c1, ar.r1, true);
         let lastCell = this._getCellTextCache(ar.c2, ar.r2, true);
 
-        if (hasNumber) {
+        if (hasNumber && !callFromWizard) {
             let i;
             // Are there numeric values ​​in the last row and column
             let hasNumberInLastColumn = (ar.c2 === hasNumber.arrCols[hasNumber.arrCols.length - 1]);
