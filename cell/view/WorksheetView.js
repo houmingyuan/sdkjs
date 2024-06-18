@@ -1844,7 +1844,6 @@
             return null;
         }
 
-		console.log(Asc.c_oAscNumFormatType);
         let c2 = Math.min(selectionRange.c2, this.nColsCount - 1);
         let r2 = Math.min(selectionRange.r2, this.nRowsCount - 1);
 		for (let c = selectionRange.c1; c <= c2; ++c) {
@@ -2154,7 +2153,12 @@
 				result.notEditCell = true;
 				return result;
 			}
-        }
+        } else {
+			// change selection to the last cell if the values ​​in the range are not valid in the autocomplete formula
+			if (!result.text && !result.notEditCell) {
+				selection.setActiveCell(ar.r2, ar.c2);
+			}
+		}
 
         // Ищем первую ячейку с числом
         for (; r >= vr.r1; --r) {

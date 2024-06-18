@@ -3156,6 +3156,50 @@ $(function () {
 		assert.strictEqual(resCell.getValueWithFormat(), "", "Value after A20:A22(only text in range) autosum");
 		assert.strictEqual(resCell.getValueForEdit(), "", "Formula after A20:A22(only text in range) autosum");
 		assert.strictEqual(wsView.model.selectionRange.getLast().getName(), "A20:A22", "Selection after A20:A22(only text in range) autosum");
+
+		/* activeCell tests */
+		/* if the data type does not allow the formula to be executed, the active cell is moved to the end of the select */
+		let activeCell, supposedActiveCell;
+
+		ws.getRange2("A1:Z100").cleanAll();
+		ws.getRange2("B10").setValue("111");
+		ws.getRange2("B20:B22").setValue("ds");
+		fillRange = ws.getRange2("B20:B22");
+		fillRange.setNumFormat("@");
+		wsView.setSelection(fillRange.bbox);
+		wsView._initRowsCount();
+		wsView._initColsCount();
+		autoCompleteRes = wsView.autoCompleteFormula("SUM");
+
+		activeCell = ws.selectionRange.activeCell;
+		supposedActiveCell = ws.getCell2("B22");
+		assert.strictEqual(activeCell.col === supposedActiveCell.bbox.c1 && activeCell.row === supposedActiveCell.bbox.r1, true, "Active cell test. B20:B22(only text in range) autosum");
+
+
+		ws.getRange2("B10").cleanAll();
+		ws.getRange2("A20:A21").setValue("111");
+		fillRange = ws.getRange2("B20:B22");
+		wsView.setSelection(fillRange.bbox);
+		wsView._initRowsCount();
+		wsView._initColsCount();
+		autoCompleteRes = wsView.autoCompleteFormula("SUM");
+
+		activeCell = ws.selectionRange.activeCell;
+		supposedActiveCell = ws.getCell2("B22");
+		assert.strictEqual(activeCell.col === supposedActiveCell.bbox.c1 && activeCell.row === supposedActiveCell.bbox.r1, true, "Active cell test. B20:B22(only text in range) autosum");
+
+
+		ws.getRange2("A22").setValue("111");
+		fillRange = ws.getRange2("B20:B22");
+		wsView.setSelection(fillRange.bbox);
+		wsView._initRowsCount();
+		wsView._initColsCount();
+		autoCompleteRes = wsView.autoCompleteFormula("SUM");
+
+		activeCell = ws.selectionRange.activeCell;
+		supposedActiveCell = ws.getCell2("B22");
+		assert.strictEqual(activeCell.col === supposedActiveCell.bbox.c1 && activeCell.row === supposedActiveCell.bbox.r1, true, "Active cell test. B20:B22(only text in range) autosum");
+
 		
 		ws.getRange2("A1:Z100").cleanAll();
 	});
