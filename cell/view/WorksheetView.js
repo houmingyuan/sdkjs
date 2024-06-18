@@ -4652,7 +4652,7 @@
 		ctx.lineTo(ctx.getWidth() - x, y);
 	};
 	WorksheetView.prototype._fillRect = function (ctx, x, y, w, h) {
-		ctx.fillRect(x, y, w, h);
+		ctx.fillRect(ctx.getWidth() - x, y, w, h);
 	};
 
 
