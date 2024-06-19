@@ -1828,10 +1828,10 @@
         }
     };
 
-	/* Checking whether there are values ​​in the range that can be used in the autocomplete formula */
-	WorksheetView.prototype._getAutocompleteValues = function () {
-		const t = this;
-		let cell, cellType, exist = false, setCols = {}, setRows = {};
+    /* Checking whether there are values ​​in the range that can be used in the autocomplete formula */
+    WorksheetView.prototype._getAutocompleteValues = function () {
+        const t = this;
+        let cell, cellType, exist = false, setCols = {}, setRows = {};
         let selection = this.model.getSelection();
         let selectionRange = selection.getLast();
         let mergedRange = this.model.getMergedByCell(selectionRange.r1, selectionRange.c1);
@@ -1846,44 +1846,44 @@
 
         let c2 = Math.min(selectionRange.c2, this.nColsCount - 1);
         let r2 = Math.min(selectionRange.r2, this.nRowsCount - 1);
-		for (let c = selectionRange.c1; c <= c2; ++c) {
+        for (let c = selectionRange.c1; c <= c2; ++c) {
             for (let r = selectionRange.r1; r <= r2; ++r) {
-				// if general, check real val
-				this.model._getCellNoEmpty(r, c, function (cell) {
-					let xfs = cell ? cell.getCompiledStyle() : t.model.getCompiledStyle(r, c);
-					let numFormatStr, info;
-					if (xfs && xfs.num) {
-						numFormatStr = xfs.num.getNumFormat();
-						info = xfs.asc_getNumFormatInfo();
-					}
-					if (cell && !cell.isNullText() && cell.type !== CellValueType.String) {
-						if (!info) {
-							exist = setRows[r] = setCols[c] = true;
-						} else if (info && info.type !== Asc.c_oAscNumFormatType.Date 
-							&& info.type !== Asc.c_oAscNumFormatType.LongDate 
-							&& info.type !== Asc.c_oAscNumFormatType.None 
-							&& info.type !== Asc.c_oAscNumFormatType.Text) {
-								exist = setRows[r] = setCols[c] = true;
-						}
-					}
-				});
+                // if general, check real val
+                this.model._getCellNoEmpty(r, c, function (cell) {
+                    let xfs = cell ? cell.getCompiledStyle() : t.model.getCompiledStyle(r, c);
+                    let numFormatStr, info;
+                    if (xfs && xfs.num) {
+                        numFormatStr = xfs.num.getNumFormat();
+                        info = xfs.asc_getNumFormatInfo();
+                    }
+                    if (cell && !cell.isNullText() && cell.type !== CellValueType.String) {
+                        if (!info) {
+                            exist = setRows[r] = setCols[c] = true;
+                        } else if (info && info.type !== Asc.c_oAscNumFormatType.Date 
+                            && info.type !== Asc.c_oAscNumFormatType.LongDate 
+                            && info.type !== Asc.c_oAscNumFormatType.None 
+                            && info.type !== Asc.c_oAscNumFormatType.Text) {
+                                exist = setRows[r] = setCols[c] = true;
+                        }
+                    }
+                });
             }
         }
 
-		if (exist) {
-			// Making arrays unique and sorting
-			let i, arrCols = [], arrRows = [];
-			for(i in setCols) {
-				arrCols.push(+i);
-			}
-			for(i in setRows) {
-				arrRows.push(+i);
-			}
-			return {arrCols: arrCols.sort(fSortAscending), arrRows: arrRows.sort(fSortAscending)};
-		} else {
-			return null;
-		}
-	}
+        if (exist) {
+            // Making arrays unique and sorting
+            let i, arrCols = [], arrRows = [];
+            for(i in setCols) {
+                arrCols.push(+i);
+            }
+            for(i in setRows) {
+                arrRows.push(+i);
+            }
+            return {arrCols: arrCols.sort(fSortAscending), arrRows: arrRows.sort(fSortAscending)};
+        } else {
+            return null;
+        }
+    }
 
     // Autocomplete formula with range if possible
     WorksheetView.prototype.autoCompleteFormula = function (functionName, callFromWizard) {
@@ -1906,7 +1906,7 @@
         let result = {};
         // Get all numeric values ​​in the range
         // let hasNumber = this._getValuesPositionsInRange(true);
-		let hasNumber = this._getAutocompleteValues();
+        let hasNumber = this._getAutocompleteValues();
 
         // Get all non-empty values ​​in the range
         let realValues = this._getValuesPositionsInRange();
@@ -2020,145 +2020,137 @@
                 this._drawSelection();
             }
 
-			if (!breakExec){
-				arCopy = ar.clone(true);
+            if (!breakExec){
+                arCopy = ar.clone(true);
 
-				let functionAction = null;
-				let changedRange = null;
+                let functionAction = null;
+                let changedRange = null;
+                
+                if (false === hasNumberInLastColumn && false === hasNumberInLastRow) {
+                    // Значений нет ни в последней строке ни в последнем столбце (значит нужно сделать формулы в каждой последней ячейке)
+                    changedRange = [new asc_Range(hasNumber.arrCols[0], arCopy.r2, hasNumber.arrCols[hasNumber.arrCols.length-1], arCopy.r2),
+                        new asc_Range(arCopy.c2, hasNumber.arrRows[0], arCopy.c2, hasNumber.arrRows[hasNumber.arrRows.length-1])];
+
+                    functionAction = function () {
+                        // Пройдемся по последней строке
+                        for (i = 0; i < hasNumber.arrCols.length; ++i) {
+                            c = hasNumber.arrCols[i];
+                            cell = t._getVisibleCell(c, arCopy.r2);
+                            text = (new asc_Range(c, arCopy.r1, c, arCopy.r2 - 1)).getName();
+                            val = t.generateAutoCompleteFormula(functionName, text);
+                            // ToDo - при вводе формулы в заголовок автофильтра надо писать "0"
+                            cell.setValue(val);
+                        }
+                        // Пройдемся по последнему столбцу
+                        for (i = 0; i < hasNumber.arrRows.length; ++i) {
+                            r = hasNumber.arrRows[i];
+                            cell = t._getVisibleCell(arCopy.c2, r);
+                            text = (new asc_Range(arCopy.c1, r, arCopy.c2 - 1, r)).getName();
+                            val = t.generateAutoCompleteFormula(functionName, text);
+                            cell.setValue(val);
+                        }
+                        // Значение в правой нижней ячейке
+                        cell = t._getVisibleCell(arCopy.c2, arCopy.r2);
+                        text = (new asc_Range(arCopy.c1, arCopy.r2, arCopy.c2 - 1, arCopy.r2)).getName();
+                        val = t.generateAutoCompleteFormula(functionName, text);
+                        cell.setValue(val);
+                    };
+                } else if (true === hasNumberInLastRow && false === hasNumberInLastColumn) {
+                    // Есть значения только в последней строке (значит нужно заполнить только последнюю колонку)
+                    changedRange = new asc_Range(arCopy.c2, hasNumber.arrRows[0], arCopy.c2, hasNumber.arrRows[hasNumber.arrRows.length-1]);
+                    functionAction = function () {
+                        // Пройдемся по последнему столбцу
+                        for (i = 0; i < hasNumber.arrRows.length; ++i) {
+                            r = hasNumber.arrRows[i];
+                            cell = t._getVisibleCell(arCopy.c2, r);
+                            text = (new asc_Range(arCopy.c1, r, arCopy.c2 - 1, r)).getName();
+                            val = t.generateAutoCompleteFormula(functionName, text);
+                            cell.setValue(val);
+                        }
+                    };
+                } else if (false === hasNumberInLastRow && true === hasNumberInLastColumn) {
+                    // Есть значения только в последнем столбце (значит нужно заполнить только последнюю строчку)
+                    changedRange = new asc_Range(hasNumber.arrCols[0], arCopy.r2, hasNumber.arrCols[hasNumber.arrCols.length-1], arCopy.r2);
+                    functionAction = function () {
+                        // Пройдемся по последней строке
+                        for (i = 0; i < hasNumber.arrCols.length; ++i) {
+                            c = hasNumber.arrCols[i];
+                            cell = t._getVisibleCell(c, arCopy.r2);
+                            text = (new asc_Range(c, arCopy.r1, c, arCopy.r2 - 1)).getName();
+                            val = t.generateAutoCompleteFormula(functionName, text);
+                            cell.setValue(val);
+                        }
+                    };
+                } else {
+                    // Есть значения и в последнем столбце, и в последней строке, выделенный диапазон по столбцам больше одной ячейки и только в одной строке есть значения
+                    if (1 === hasNumber.arrRows.length && (ar.c2 - ar.c1) > 0) {
+                        changedRange = new asc_Range(arCopy.c2, arCopy.r2, arCopy.c2, arCopy.r2);
+                        functionAction = function () {
+                            // Одна строка или только в последней строке есть значения...
+                            cell = t._getVisibleCell(arCopy.c2, arCopy.r2);
+                            // ToDo вводить в первое свободное место, а не сразу за диапазоном
+                            text = (new asc_Range(arCopy.c1, arCopy.r2, arCopy.c2 - 1, arCopy.r2)).getName();
+                            val = t.generateAutoCompleteFormula(functionName, text);
+                            cell.setValue(val);
+                        };
+                    } else {
+                        changedRange = new asc_Range(hasNumber.arrCols[0], arCopy.r2, hasNumber.arrCols[hasNumber.arrCols.length-1], arCopy.r2);
+                        functionAction = function () {
+                            // Иначе вводим в строку вниз
+                            for (i = 0; i < hasNumber.arrCols.length; ++i) {
+                                c = hasNumber.arrCols[i];
+                                cell = t._getVisibleCell(c, arCopy.r2);
+                                // ToDo вводить в первое свободное место, а не сразу за диапазоном
+                                text = (new asc_Range(c, arCopy.r1, c, arCopy.r2 - 1)).getName();
+                                val = t.generateAutoCompleteFormula(functionName, text);
+                                cell.setValue(val);
+                            }
+                        };
+                    }
+                }
+                
+                const onAutoCompleteFormula = function (isSuccess) {
+                    if (false === isSuccess) {
+                        return;
+                    }
 	
-				if (false === hasNumberInLastColumn && false === hasNumberInLastRow) {
-					// Значений нет ни в последней строке ни в последнем столбце (значит нужно сделать формулы в каждой последней ячейке)
-					changedRange =
-					  [new asc_Range(hasNumber.arrCols[0], arCopy.r2, hasNumber.arrCols[hasNumber.arrCols.length -
-					  1], arCopy.r2),
-						  new asc_Range(arCopy.c2, hasNumber.arrRows[0], arCopy.c2, hasNumber.arrRows[hasNumber.arrRows.length -
-						  1])];
-					functionAction = function () {
-						// Пройдемся по последней строке
-						for (i = 0; i < hasNumber.arrCols.length; ++i) {
-							c = hasNumber.arrCols[i];
-							cell = t._getVisibleCell(c, arCopy.r2);
-							text = (new asc_Range(c, arCopy.r1, c, arCopy.r2 - 1)).getName();
-							val = t.generateAutoCompleteFormula(functionName, text);
-							// ToDo - при вводе формулы в заголовок автофильтра надо писать "0"
-							cell.setValue(val);
-						}
-						// Пройдемся по последнему столбцу
-						for (i = 0; i < hasNumber.arrRows.length; ++i) {
-							r = hasNumber.arrRows[i];
-							cell = t._getVisibleCell(arCopy.c2, r);
-							text = (new asc_Range(arCopy.c1, r, arCopy.c2 - 1, r)).getName();
-							val = t.generateAutoCompleteFormula(functionName, text);
-							cell.setValue(val);
-						}
-						// Значение в правой нижней ячейке
-						cell = t._getVisibleCell(arCopy.c2, arCopy.r2);
-						text = (new asc_Range(arCopy.c1, arCopy.r2, arCopy.c2 - 1, arCopy.r2)).getName();
-						val = t.generateAutoCompleteFormula(functionName, text);
-						cell.setValue(val);
-					};
-				} else if (true === hasNumberInLastRow && false === hasNumberInLastColumn) {
-					// Есть значения только в последней строке (значит нужно заполнить только последнюю колонку)
-					changedRange =
-					  new asc_Range(arCopy.c2, hasNumber.arrRows[0], arCopy.c2, hasNumber.arrRows[hasNumber.arrRows.length -
-					  1]);
-					functionAction = function () {
-						// Пройдемся по последнему столбцу
-						for (i = 0; i < hasNumber.arrRows.length; ++i) {
-							r = hasNumber.arrRows[i];
-							cell = t._getVisibleCell(arCopy.c2, r);
-							text = (new asc_Range(arCopy.c1, r, arCopy.c2 - 1, r)).getName();
-							val = t.generateAutoCompleteFormula(functionName, text);
-							cell.setValue(val);
-						}
-					};
-				} else if (false === hasNumberInLastRow && true === hasNumberInLastColumn) {
-					// Есть значения только в последнем столбце (значит нужно заполнить только последнюю строчку)
-					changedRange =
-					  new asc_Range(hasNumber.arrCols[0], arCopy.r2, hasNumber.arrCols[hasNumber.arrCols.length -
-					  1], arCopy.r2);
-					functionAction = function () {
-						// Пройдемся по последней строке
-						for (i = 0; i < hasNumber.arrCols.length; ++i) {
-							c = hasNumber.arrCols[i];
-							cell = t._getVisibleCell(c, arCopy.r2);
-							text = (new asc_Range(c, arCopy.r1, c, arCopy.r2 - 1)).getName();
-							val = t.generateAutoCompleteFormula(functionName, text);
-							cell.setValue(val);
-						}
-					};
-				} else {
-					// Есть значения и в последнем столбце, и в последней строке, выделенный диапазон по столбцам больше одной ячейки и только в одной строке есть значения
-					if (1 === hasNumber.arrRows.length && (ar.c2 - ar.c1) > 0) {
-						changedRange = new asc_Range(arCopy.c2, arCopy.r2, arCopy.c2, arCopy.r2);
-						functionAction = function () {
-							// Одна строка или только в последней строке есть значения...
-							cell = t._getVisibleCell(arCopy.c2, arCopy.r2);
-							// ToDo вводить в первое свободное место, а не сразу за диапазоном
-							text = (new asc_Range(arCopy.c1, arCopy.r2, arCopy.c2 - 1, arCopy.r2)).getName();
-							val = t.generateAutoCompleteFormula(functionName, text);
-							cell.setValue(val);
-						};
-					} else {
-						changedRange =
-						  new asc_Range(hasNumber.arrCols[0], arCopy.r2, hasNumber.arrCols[hasNumber.arrCols.length -
-						  1], arCopy.r2);
-						functionAction = function () {
-							// Иначе вводим в строку вниз
-							for (i = 0; i < hasNumber.arrCols.length; ++i) {
-								c = hasNumber.arrCols[i];
-								cell = t._getVisibleCell(c, arCopy.r2);
-								// ToDo вводить в первое свободное место, а не сразу за диапазоном
-								text = (new asc_Range(c, arCopy.r1, c, arCopy.r2 - 1)).getName();
-								val = t.generateAutoCompleteFormula(functionName, text);
-								cell.setValue(val);
-							}
-						};
-					}
-				}
+                    History.Create_NewPoint();
+                    History.SetSelection(arHistorySelect.clone());
+                    History.SetSelectionRedo(arCopy.clone());
+                    History.StartTransaction();
 	
-				const onAutoCompleteFormula = function (isSuccess) {
-					if (false === isSuccess) {
-						return;
-					}
+                    asc_applyFunction(functionAction);
 	
-					History.Create_NewPoint();
-					History.SetSelection(arHistorySelect.clone());
-					History.SetSelectionRedo(arCopy.clone());
-					History.StartTransaction();
+                    History.EndTransaction();
 	
-					asc_applyFunction(functionAction);
+                    t.getSelectionMathInfo(function (info) {
+                        t.handlers.trigger("selectionMathInfoChanged", info);
+                    });
 	
-					History.EndTransaction();
+                    let selectionType = ar.getType && ar.getType();
+                    if (selectionType === c_oAscSelectionType.RangeCol) {
+                        t.scrollType |= AscCommonExcel.c_oAscScrollType.ScrollVertical;
+                    } else if (selectionType === c_oAscSelectionType.RangeRow) {
+                        t.scrollType |= AscCommonExcel.c_oAscScrollType.ScrollHorizontal;
+                    } else if (selectionType === c_oAscSelectionType.RangeMax) {
+                        t.scrollType |= AscCommonExcel.c_oAscScrollType.ScrollVertical | AscCommonExcel.c_oAscScrollType.ScrollHorizontal;
+                    }
 	
-					t.getSelectionMathInfo(function (info) {
-						t.handlers.trigger("selectionMathInfoChanged", info);
-					});
-	
-					let selectionType = ar.getType && ar.getType();
-					if (selectionType === c_oAscSelectionType.RangeCol) {
-						t.scrollType |= AscCommonExcel.c_oAscScrollType.ScrollVertical;
-					} else if (selectionType === c_oAscSelectionType.RangeRow) {
-						t.scrollType |= AscCommonExcel.c_oAscScrollType.ScrollHorizontal;
-					} else if (selectionType === c_oAscSelectionType.RangeMax) {
-						t.scrollType |= AscCommonExcel.c_oAscScrollType.ScrollVertical | AscCommonExcel.c_oAscScrollType.ScrollHorizontal;
-					}
-	
-					t.draw();
-				};
-	
-				// Можно ли применять автоформулу
-				this._isLockedCells(changedRange, /*subType*/null, onAutoCompleteFormula);
-	
-				result.notEditCell = true;
-				return result;
-			}
+                    t.draw();
+                };
+                
+                // Можно ли применять автоформулу
+                this._isLockedCells(changedRange, /*subType*/null, onAutoCompleteFormula);
+                
+                result.notEditCell = true;
+                return result;
+            }
         } else {
-			// change selection to the last cell if the values ​​in the range are not valid in the autocomplete formula
-			if (!result.text && !result.notEditCell) {
-				selection.setActiveCell(ar.r2, ar.c2);
-			}
-		}
+            // change selection to the last cell if the values ​​in the range are not valid in the autocomplete formula
+            if (!result.text && !result.notEditCell) {
+                selection.setActiveCell(ar.r2, ar.c2);
+            }
+        }
 
         // Ищем первую ячейку с числом
         for (; r >= vr.r1; --r) {
