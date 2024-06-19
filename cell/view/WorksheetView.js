@@ -1829,7 +1829,7 @@
     };
 
     /* Checking whether there are values ​​in the range that can be used in the autocomplete formula */
-    WorksheetView.prototype._getAutocompleteValues = function () {
+	WorksheetView.prototype._getAutocompleteValues = function () {
         const t = this;
         let cell, cellType, exist = false, setCols = {}, setRows = {};
         let selection = this.model.getSelection();
@@ -1846,44 +1846,44 @@
 
         let c2 = Math.min(selectionRange.c2, this.nColsCount - 1);
         let r2 = Math.min(selectionRange.r2, this.nRowsCount - 1);
-        for (let c = selectionRange.c1; c <= c2; ++c) {
+		for (let c = selectionRange.c1; c <= c2; ++c) {
             for (let r = selectionRange.r1; r <= r2; ++r) {
-                // if general, check real val
-                this.model._getCellNoEmpty(r, c, function (cell) {
-                    let xfs = cell ? cell.getCompiledStyle() : t.model.getCompiledStyle(r, c);
-                    let numFormatStr, info;
-                    if (xfs && xfs.num) {
-                        numFormatStr = xfs.num.getNumFormat();
-                        info = xfs.asc_getNumFormatInfo();
-                    }
-                    if (cell && !cell.isNullText() && cell.type !== CellValueType.String) {
-                        if (!info) {
-                            exist = setRows[r] = setCols[c] = true;
-                        } else if (info && info.type !== Asc.c_oAscNumFormatType.Date 
-                            && info.type !== Asc.c_oAscNumFormatType.LongDate 
-                            && info.type !== Asc.c_oAscNumFormatType.None 
-                            && info.type !== Asc.c_oAscNumFormatType.Text) {
-                                exist = setRows[r] = setCols[c] = true;
-                        }
-                    }
-                });
+				// if general, check real val
+				this.model._getCellNoEmpty(r, c, function (cell) {
+					let xfs = cell ? cell.getCompiledStyle() : t.model.getCompiledStyle(r, c);
+					let numFormatStr, info;
+					if (xfs && xfs.num) {
+						numFormatStr = xfs.num.getNumFormat();
+						info = xfs.asc_getNumFormatInfo();
+					}
+					if (cell && !cell.isNullText() && cell.type !== CellValueType.String) {
+						if (!info) {
+							exist = setRows[r] = setCols[c] = true;
+						} else if (info && info.type !== Asc.c_oAscNumFormatType.Date 
+							&& info.type !== Asc.c_oAscNumFormatType.LongDate 
+							&& info.type !== Asc.c_oAscNumFormatType.None 
+							&& info.type !== Asc.c_oAscNumFormatType.Text) {
+								exist = setRows[r] = setCols[c] = true;
+						}
+					}
+				});
             }
         }
 
-        if (exist) {
-            // Making arrays unique and sorting
-            let i, arrCols = [], arrRows = [];
-            for(i in setCols) {
-                arrCols.push(+i);
-            }
-            for(i in setRows) {
-                arrRows.push(+i);
-            }
-            return {arrCols: arrCols.sort(fSortAscending), arrRows: arrRows.sort(fSortAscending)};
-        } else {
-            return null;
-        }
-    }
+		if (exist) {
+			// Making arrays unique and sorting
+			let i, arrCols = [], arrRows = [];
+			for(i in setCols) {
+				arrCols.push(+i);
+			}
+			for(i in setRows) {
+				arrRows.push(+i);
+			}
+			return {arrCols: arrCols.sort(fSortAscending), arrRows: arrRows.sort(fSortAscending)};
+		} else {
+			return null;
+		}
+	}
 
     // Autocomplete formula with range if possible
     WorksheetView.prototype.autoCompleteFormula = function (functionName, callFromWizard) {
