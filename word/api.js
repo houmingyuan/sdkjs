@@ -12047,9 +12047,9 @@ background-repeat: no-repeat;\
 		this.sendEvent("asc_onBookmarksUpdate");
 	};
 
-	asc_docs_api.prototype.asc_OnProtectionUpdate = function(sUserId)
+	asc_docs_api.prototype.asc_OnProtectionUpdate = function(sUserId, fromRestrictions)
 	{
-		this.sendEvent("asc_onChangeDocumentProtection", sUserId);
+		this.sendEvent("asc_onChangeDocumentProtection", sUserId, fromRestrictions);
 	};
 
 	asc_docs_api.prototype.asc_GetHeadingLevel = function(sStyleName)
@@ -13552,6 +13552,8 @@ background-repeat: no-repeat;\
 			else
 				oform.clearCurrentRole();
 		}
+		
+		this.asc_OnProtectionUpdate(null, true);
 	};
 	asc_docs_api.prototype.isShowShapeAdjustments = function()
 	{
