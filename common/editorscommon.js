@@ -1380,7 +1380,9 @@
 
 	function test_defName()
 	{
-		var nameRangeRE = new RegExp("(^([" + str_namedRanges + "_])([" + str_namedRanges + "_0-9]*)$)", "i");
+		//रि
+		//var nameRangeRE = new RegExp("(^([" + str_namedRanges + "_])([" + str_namedRanges + "_0-9]*))", "i");
+		  var nameRangeRE = new RegExp("(^([" + str_namedRanges + "_])([" + str_namedRanges + "_0-9]*)$)", "i");
 
 		this.test = function (str)
 		{
