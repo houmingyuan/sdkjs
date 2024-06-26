@@ -223,11 +223,11 @@ function (window, undefined) {
 				const description = paramMatch[6] || '';
 	
 				params.push({
-					type,
-					name,
-					isOptional,
-					defaultValue,
-					description
+					type: type,
+					name: name,
+					isOptional: isOptional,
+					defaultValue: defaultValue,
+					description: description
 				});
 			}
 	
@@ -242,11 +242,11 @@ function (window, undefined) {
 				const description = propertyMatch[6] || '';
 	
 				properties.push({
-					type,
-					name,
-					isOptional,
-					defaultValue,
-					description
+					type: type,
+					name: name,
+					isOptional: isOptional,
+					defaultValue: defaultValue,
+					description: description
 				});
 			}
 	
@@ -267,8 +267,10 @@ function (window, undefined) {
 
 			if (nameMatch && nameMatch[1]) {
 				const localesAndNames = nameMatch[1].split(/\s*\|\s*/);
-				localesAndNames.forEach(localeAndName => {
-					const [locale, name] = localeAndName.split(':');
+				localesAndNames.forEach(function (localeAndName) {
+					const splitLocaleAndName = localeAndName.split(':');
+					const locale = splitLocaleAndName[0];
+					const name = splitLocaleAndName[1];
 					nameLocale[locale.trim()] = name.trim();
 				});
 			}
@@ -1800,6 +1802,13 @@ function (window, undefined) {
 
 	CColor.prototype.getColorName = function () {
 		return (new asc_CColor(this.r, this.g, this.b)).asc_getName();
+	};
+
+	CColor.prototype.getAscColor = function () {
+		return (new asc_CColor(this.r, this.g, this.b));
+	};
+	CColor.prototype.fromAscColor = function (oAscColor) {
+		return new CColor(oAscColor.r, oAscColor.g, oAscColor.b);
 	};
 
 	/** @constructor */
@@ -3889,7 +3898,7 @@ function (window, undefined) {
 		if(window["IS_NATIVE_EDITOR"]) {
 			let fGetOriginalImageSize = window["native"]["GetOriginalImageSize"] ||
 				window["native"]["DD_GetOriginalImageSize"];
-			let sizes = fGetOriginalImageSize(this.ImageUrl);
+			let sizes = fGetOriginalImageSize.call(window["native"], this.ImageUrl);
 			let w = sizes[0];
 			let h = sizes[1];
 			let isN = AscFormat.isRealNumber;
@@ -4346,7 +4355,7 @@ function (window, undefined) {
 		return this.colors;
 	};
 	CAscColorScheme.prototype.get_name = function () {
-		return this.name;
+		return AscCommon.translateManager.getValue(this.name);
 	};
 	CAscColorScheme.prototype.get_dk1 = function () {
 		return this.colors[0];
@@ -5085,13 +5094,13 @@ function (window, undefined) {
 				}
 				switch (oApi.getEditorId()) {
 					case AscCommon.c_oEditorId.Word: {
-						oShape.setWordShape(true);
-						bWord = true;
+						bWord = true && !oApi.isPdfEditor();
+						oShape.setWordShape(bWord);
 						break;
 					}
 					case AscCommon.c_oEditorId.Presentation: {
 						oShape.setWordShape(false);
-						oShape.setParent(oApi.WordControl.m_oLogicDocument.Slides[oApi.WordControl.m_oLogicDocument.CurPage]);
+						oShape.setParent(oApi.WordControl.m_oLogicDocument.GetCurrentSlide());
 						break;
 					}
 					case AscCommon.c_oEditorId.Spreadsheet: {
@@ -5102,9 +5111,11 @@ function (window, undefined) {
 				}
 
 				let _oldTrackRevision = false;
-				if (oApi.getEditorId() == AscCommon.c_oEditorId.Word && oApi.WordControl && oApi.WordControl.m_oLogicDocument) _oldTrackRevision = oApi.WordControl.m_oLogicDocument.GetLocalTrackRevisions();
+				if (oApi.getEditorId() === AscCommon.c_oEditorId.Word && oApi.WordControl && !oApi.isPdfEditor())
+					_oldTrackRevision = oApi.WordControl.m_oLogicDocument.GetLocalTrackRevisions();
 
-				if (false !== _oldTrackRevision) oApi.WordControl.m_oLogicDocument.SetLocalTrackRevisions(false);
+				if (false !== _oldTrackRevision)
+					oApi.WordControl.m_oLogicDocument.SetLocalTrackRevisions(false);
 
 				let bRemoveDocument = false;
 				if (oApi.WordControl && !oApi.WordControl.m_oLogicDocument) {
@@ -5312,9 +5323,11 @@ function (window, undefined) {
 					oApi.ShowParaMarks = oldShowParaMarks;
 				}
 
-				if (false !== _oldTrackRevision) oApi.WordControl.m_oLogicDocument.SetLocalTrackRevisions(_oldTrackRevision);
+				if (false !== _oldTrackRevision)
+					oApi.WordControl.m_oLogicDocument.SetLocalTrackRevisions(_oldTrackRevision);
 
-				if (this.imageBackground) delete oApi.ImageLoader.map_image_index[this.imageBackgroundUrl];
+				if (this.imageBackground)
+					delete oApi.ImageLoader.map_image_index[this.imageBackgroundUrl];
 
 			}, this, [obj]);
 
@@ -5434,6 +5447,26 @@ function (window, undefined) {
 	PluginType["PanelRight"] = PluginType.PanelRight;
 	PluginType["Unvisible"] = PluginType.Unvisible;
 
+	PluginType["getType"] = PluginType.getType = function(type) {
+		if (undefined === type)
+			return undefined;
+
+		if (typeof type !== "string")
+			return type;
+
+		switch (type) {
+			case "system" : return this.System;
+			case "background" : return this.Background;
+			case "window" : return this.Window;
+			case "panel" : return this.Panel;
+			case "panelRight" : return this.PanelRight;
+			case "invisible" : return this.Invisible;
+			default: break;
+		}
+
+		return this.Background;
+	};
+
 	function CPluginVariation() {
 		this.description = "";
 		this.url = "";
@@ -5540,31 +5573,7 @@ function (window, undefined) {
 		_object["isDisplayedInViewer"] = this.isDisplayedInViewer;
 		_object["EditorsSupport"] = this.EditorsSupport;
 
-		switch (this.type) {
-			case PluginType.System:
-				_object["type"] = "system";
-				break;
-
-			case PluginType.Window:
-				_object["type"] = "window";
-				break;
-
-			case PluginType.Panel:
-				_object["type"] = "panel";
-				break;
-
-			case PluginType.PanelRight:
-				_object["type"] = "panelRight";
-				break;
-
-			case PluginType.Invisible:
-				_object["type"] = "invisible";
-				break;
-		
-			default:
-				_object["type"] = "background";
-				break;
-		}
+		_object["type"] = this.type;
 
 		_object["isCustomWindow"] = this.isCustomWindow;
 		_object["isModal"] = this.isModal;
@@ -5599,13 +5608,9 @@ function (window, undefined) {
 		// default: background
 		this.type = PluginType.Background;
 
-		let _type = _object["type"];
+		let _type = PluginType.getType(_object["type"]);
 		if (undefined !== _type) {
-			if ("system" === _type) this.type = PluginType.System;
-			if ("window" === _type) this.type = PluginType.Window;
-			if ("panel" === _type) this.type = PluginType.Panel;
-			if ("panelRight" === _type) this.type = PluginType.PanelRight;
-			if ("invisible" === _type) this.type = PluginType.Invisible;
+			this.type = _type;
 		}
 		else {
 			// old version: not support background plugins

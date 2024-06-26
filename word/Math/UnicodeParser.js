@@ -658,8 +658,6 @@
 			strClose,
 			oExp;
 
-		this.SaveTokensWhileReturn();
-
 		if (this.oLookahead.class === oLiteralNames.opOpenBracket[0] || this.oLookahead.class === oLiteralNames.opOpenCloseBracket[0] || this.oLookahead.class === "├")
 		{
 			if (this.oLookahead.data === "├")
@@ -721,7 +719,10 @@
 
 			if (!strClose)
 			{
-				return this.WriteSavedTokens();
+				return [{
+					type:  oLiteralNames.charLiteral[num],
+					value: strOpen,
+				}, oExp]
 			}
 
 			return {
@@ -1431,11 +1432,8 @@
 	{
 		const arrDiacriticList = [];
 
-		while (this.IsDiacriticsLiteral())
-		{
-			arrDiacriticList.push(this.oLookahead.data);
-			this.EatToken(MathLiteral.accent.id);
-		}
+		arrDiacriticList.push(this.oLookahead.data);
+		this.EatToken(MathLiteral.accent.id);
 
 		return this.GetContentOfLiteral(arrDiacriticList);
 	};
@@ -1553,12 +1551,15 @@
 		{
 			let oEntity = this.GetEntityLiteral();
 
-			if (this.IsDiacriticsLiteral())
+			if (this.oLookahead.data === " ")
+				this.EatToken(this.oLookahead.class);
+
+			while (this.IsDiacriticsLiteral())
 			{
 				const oDiacritic = this.GetDiacriticsLiteral();
 				if (oDiacritic === "''" || oDiacritic === "'")
 				{
-					return {
+					oEntity = {
 						type: oLiteralNames.subSupLiteral[num],
 						value: oEntity,
 						up: oDiacritic,
@@ -1566,16 +1567,26 @@
 				}
 				else if (oDiacritic === "̅" && this.IsGetOneBarLiteral(oEntity))
 				{
-					return this.GetOneBarLiteral(oEntity, oDiacritic);
+					oEntity = this.GetOneBarLiteral(oEntity, oDiacritic);
 				}
 
-				return {
+				//nbsp processing for accents
+				if (oEntity[oEntity.length - 1] && oEntity[oEntity.length - 1].value === String.fromCharCode(160)) //nbsp
+					oEntity.length--;
+				else if (oEntity.value === String.fromCharCode(160))
+					oEntity = {};
+
+				oEntity = {
 					type: MathLiteral.accent.id,
 					base: oEntity,
 					value: oDiacritic,
 				};
+
+				if (this.oLookahead.class === oLiteralNames.spaceLiteral[0])
+					this.EatToken(this.oLookahead.class);
 			}
-			else if (this.IsHBracketLiteral())
+
+			if (this.IsHBracketLiteral())
 			{
 				return this.GetSpecialHBracket(oEntity);
 			}

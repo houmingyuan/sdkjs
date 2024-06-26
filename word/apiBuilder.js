@@ -1446,8 +1446,8 @@
 		private_RefreshRangesPosition();
 		private_RemoveEmptyRanges();
 
-		var Document = private_GetLogicDocument();
-		Document.RemoveSelection();
+		let oDocument = private_GetLogicDocument();
+		oDocument.RemoveSelection();
 
 		if (this.isEmpty || this.isEmpty === undefined || typeof(sText) !== "string")
 			return false;
@@ -1457,35 +1457,66 @@
 		
 		if (sPosition === "after")
 		{
-			var lastRun				= this.EndPos[this.EndPos.length - 1].Class;
-			var lastRunPos			= this.EndPos[this.EndPos.length - 1].Position;
-			var lastRunPosInParent	= this.EndPos[this.EndPos.length - 2].Position;
-			var lastRunParent		= lastRun.GetParent();
-			var newRunPos			= lastRunPos;
-			if (lastRunPos === 0)
+			let oTargetRun	= this.EndPos[this.EndPos.length - 1].Class;
+			let oPrevApiRun	= null;
+
+			if (oTargetRun.IsParaEndRun())
 			{
-				if (lastRunPosInParent - 1 >= 0)
+				oPrevApiRun = new ApiRun(oTargetRun).private_GetPreviousInParent();
+				
+				if (oPrevApiRun)
 				{
-					lastRunPosInParent--;
-					lastRun		= lastRunParent.GetElement(lastRunPosInParent);
-					lastRunPos	= lastRun.Content.length;
+					oTargetRun = oPrevApiRun.Run;
+				}
+				else
+				{
+					oTargetRun = null;
 				}
 			}
-			else 
-				for (var oIterator = sText.getUnicodeIterator(); oIterator.check(); oIterator.next())
-					newRunPos++;
 
-			lastRun.AddText(sText, lastRunPos);
-			this.EndPos[this.EndPos.length - 1].Class = lastRun;
-			this.EndPos[this.EndPos.length - 1].Position = newRunPos;
-			this.EndPos[this.EndPos.length - 2].Position = lastRunPosInParent;
+			if (!oTargetRun)
+			{
+				return false; 	
+			}
+
+			let nPosInRun		= this.EndPos[this.EndPos.length - 1].Position;
+			let nRunPosInParent	= this.EndPos[this.EndPos.length - 2].Position;
+			let oRunParent		= oTargetRun.GetParent();
+			let nNewPosInRun	= nPosInRun;
+
+			if (nPosInRun === 0)
+			{
+				if (nRunPosInParent - 1 >= 0)
+				{
+					nRunPosInParent--;
+					oTargetRun		= oRunParent.GetElement(nRunPosInParent);
+					nPosInRun	= oTargetRun.Content.length;
+				}
+			}
+			else {
+				for (let oIterator = sText.getUnicodeIterator(); oIterator.check(); oIterator.next())
+					nNewPosInRun++;
+			}
+
+			// если ран окончания параграфа, позиция в нём не изменится
+			if (null == oPrevApiRun) {
+				oTargetRun.AddText(sText, nPosInRun);
+				this.EndPos[this.EndPos.length - 1].Class = oTargetRun;
+				this.EndPos[this.EndPos.length - 1].Position = nNewPosInRun;
+				this.EndPos[this.EndPos.length - 2].Position = nRunPosInParent;
+			}
+			else {
+				nPosInRun = oTargetRun.Content.length;
+				oTargetRun.AddText(sText, nPosInRun);
+			}
+			
 			private_TrackRangesPositions(true);
 		}
 		else if (sPosition === "before")
 		{
-			var firstRun		= this.StartPos[this.StartPos.length - 1].Class;
-			var firstRunPos		= this.StartPos[this.StartPos.length - 1].Position;
-			firstRun.AddText(sText, firstRunPos);
+			let oTargetRun	= this.StartPos[this.StartPos.length - 1].Class;
+			let nPosInRun	= this.StartPos[this.StartPos.length - 1].Position;
+			oTargetRun.AddText(sText, nPosInRun);
 		}
 
 		return true;
@@ -4868,7 +4899,7 @@
 					// other
 					oCurSectPr.Set_TitlePage(oNewSectPr.TitlePage);
 					oCurSectPr.Set_Type(oNewSectPr.Type);
-					oCurSectPr.Set_PageNum_Start(oNewSectPr.PageNumType.Start);
+					oCurSectPr.SetPageNumStart(oNewSectPr.PageNumType.Start);
 
 				}
 
@@ -5487,6 +5518,7 @@
 		}
 
 		oStyles.Add(oStyle);
+		oStyles.UpdateDefaultStyleLinks();
 		return new ApiStyle(oStyle);
 	};
 	/**
@@ -5570,7 +5602,7 @@
 
 		oSectPr.Copy(oCurSectPr);
 		oCurSectPr.Set_Type(oSectPr.Type);
-		oCurSectPr.Set_PageNum_Start(-1);
+		oCurSectPr.SetPageNumStart(-1);
 		oCurSectPr.Clear_AllHdrFtr();
 
 		oParagraph.private_GetImpl().Set_SectionPr(oSectPr);
@@ -9088,7 +9120,7 @@
 		let oCurSectPr = oDoc.SectionsInfo.Get_SectPr(nContentPos).SectPr;
 
 		oCurSectPr.Set_Type(oSectPr.Type);
-		oCurSectPr.Set_PageNum_Start(-1);
+		oCurSectPr.SetPageNumStart(-1);
 		oCurSectPr.Clear_AllHdrFtr();
 
 		this.private_GetImpl().Set_SectionPr(oSectPr);
@@ -10824,66 +10856,6 @@
 		}
 		return arrTables;
 	};
-	/**
-     * Returns the next table if exists.
-     * @memberof ApiTable
-	 * @typeofeditors ["CDE"]
-     * @return {ApiTable | null} - returns null if table is last.  
-     */
-    ApiTable.prototype.GetNext = function()
-    {
-		var oDocument = editor.GetDocument();
-
-		var absEndPage = this.Table.GetAbsolutePage(this.Table.Pages.length - 1); // страница, на которой заканчивается таблица
-        
-		for (var curPage = absEndPage; curPage < oDocument.Document.Pages.length; curPage++)
-		{
-			var curPageTables = oDocument.Document.GetAllTablesOnPage(curPage); // все таблицы на странице 
-			for (var Index = 0; Index < curPageTables.length; Index++)
-			{
-				if (curPageTables[Index].Table.Id === this.Table.Id)
-				{
-					if (curPageTables[Index + 1])
-					{
-						return new ApiTable(curPageTables[Index + 1].Table)
-					}
-				}
-				else 
-					return new ApiTable(curPageTables[Index].Table);
-			}
-		}
-		
-		return null; 
-	};
-	/**
-     * Returns the previous table if exists.
-     * @memberof ApiTable
-	 * @typeofeditors ["CDE"]
-     * @return {ApiTable | null} - returns null if table is first.  
-     */
-    ApiTable.prototype.GetPrevious = function()
-    {
-		var oDocument = editor.GetDocument();
-
-		var absEndPage = this.Table.GetAbsolutePage(0); // страница, на которой заканчивается таблица
-        
-		for (var curPage = absEndPage; curPage >= 0; curPage--)
-		{
-			var curPageTables = oDocument.Document.GetAllTablesOnPage(curPage); // все таблицы на странице 
-			for (var Index = curPageTables.length - 1; Index >= 0; Index--)
-			{
-				if (curPageTables[Index].Table.Id === this.Table.Id)
-				{
-					if (curPageTables[Index - 1])
-						return new ApiTable(curPageTables[Index - 1].Table)
-				}
-				else 
-					return new ApiTable(curPageTables[Index].Table);
-			}
-		}
-		
-		return null; 
-    };
     /**
      * Returns a table cell that contains the current table.
      * @memberof ApiTable
@@ -16129,6 +16101,24 @@
 		var oWriter = new AscJsonConverter.WriterToJSON();
 		return JSON.stringify(oWriter.SerColor(this.Unicolor));
 	};
+	/**
+	 * Returns a color value in RGB format.
+	 * @memberof ApiUniColor
+	 * @typeofeditors ["CDE"]
+	 * @returns {number}
+	 */
+	ApiUniColor.prototype.GetRGB = function()
+	{
+		if (!this.Unicolor || !this.Unicolor.RGBA)
+			return 0;
+		
+		let logicDocument = private_GetLogicDocument();
+		if (this.Unicolor.check && logicDocument)
+			this.Unicolor.check(logicDocument.GetTheme(), logicDocument.GetColorMap());
+		
+		let c = this.Unicolor.RGBA;
+		return (c.R << 16) | (c.G << 8) | c.B;
+	};
 
 	//------------------------------------------------------------------------------------------------------------------
 	//
@@ -16768,10 +16758,11 @@
 	};
 	
 	/**
-	 * Place cursor before/after the current content control
-	 * @param {boolean?} [isAfter=true]
+	 * Places a cursor before/after the current content control.
+	 * @param {boolean?} [isAfter=true] - Specifies whether a cursor will be placed before (false) or after (true) the current content control.
 	 * @memberof ApiInlineLvlSdt
 	 * @typeofeditors ["CDE"]
+	 * @since 8.1.0
 	 */
 	ApiInlineLvlSdt.prototype.MoveCursorOutside = function(isAfter)
 	{
@@ -17828,10 +17819,11 @@
 	};
 	
 	/**
-	 * Place cursor before/after the current content control
-	 * @param {boolean?} [isAfter=true]
+	 * Places a cursor before/after the current content control.
+	 * @param {boolean?} [isAfter=true] - Specifies whether a cursor will be placed before (false) or after (true) the current content control.
 	 * @memberof ApiBlockLvlSdt
 	 * @typeofeditors ["CDE"]
+	 * @since 8.1.0
 	 */
 	ApiBlockLvlSdt.prototype.MoveCursorOutside = function(isAfter)
 	{
@@ -18199,10 +18191,11 @@
 		return new ApiTextPr(this, this.Sdt.Pr.TextPr.Copy());
 	};
 	/**
-	 * Place cursor before/after the current form.
-	 * @param {boolean?} [isAfter=true]
+	 * Places a cursor before/after the current form.
+	 * @param {boolean?} [isAfter=true] - Specifies whether a cursor will be placed before (false) or after (true) the current form.
 	 * @memberof ApiFormBase
-	 * @typeofeditors ["CDE"]
+	 * @typeofeditors ["CDE", "CFE"]
+	 * @since 8.1.0
 	 */
 	ApiFormBase.prototype.MoveCursorOutside = function(isAfter)
 	{
@@ -20508,8 +20501,6 @@
 	ApiTable.prototype["InsertInContentControl"]     = ApiTable.prototype.InsertInContentControl;
 	ApiTable.prototype["GetParentTable"]    		 = ApiTable.prototype.GetParentTable;
 	ApiTable.prototype["GetTables"]     			 = ApiTable.prototype.GetTables;
-	ApiTable.prototype["GetNext"]    				 = ApiTable.prototype.GetNext;
-	ApiTable.prototype["GetPrevious"]    			 = ApiTable.prototype.GetPrevious;
 	ApiTable.prototype["GetParentTableCell"]   	 	 = ApiTable.prototype.GetParentTableCell;
 	ApiTable.prototype["Delete"]    				 = ApiTable.prototype.Delete;
 	ApiTable.prototype["Clear"]    					 = ApiTable.prototype.Clear;
@@ -20830,6 +20821,7 @@
 
 	ApiUniColor.prototype["GetClassType"]            = ApiUniColor.prototype.GetClassType;
 	ApiUniColor.prototype["ToJSON"]                  = ApiUniColor.prototype.ToJSON;
+	ApiUniColor.prototype["GetRGB"]                  = ApiUniColor.prototype.GetRGB;
 
 	ApiRGBColor.prototype["GetClassType"]            = ApiRGBColor.prototype.GetClassType;
 	ApiRGBColor.prototype["ToJSON"]                  = ApiRGBColor.prototype.ToJSON;

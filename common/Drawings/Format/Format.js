@@ -749,6 +749,7 @@
 		AscDFH.changesFactory[AscDFH.historyitem_NvPr_SetIsPhoto] = CChangesDrawingsBool;
 		AscDFH.changesFactory[AscDFH.historyitem_NvPr_SetUserDrawn] = CChangesDrawingsBool;
 		AscDFH.changesFactory[AscDFH.historyitem_NvPr_SetPh] = CChangesDrawingsObject;
+		AscDFH.changesFactory[AscDFH.historyitem_NvPr_AddExt] = CChangesDrawingsContentNoId;
 		AscDFH.changesFactory[AscDFH.historyitem_NvPr_SetUniMedia] = CChangesDrawingsObjectNoId;
 		AscDFH.changesFactory[AscDFH.historyitem_Ph_SetHasCustomPrompt] = CChangesDrawingsBool;
 		AscDFH.changesFactory[AscDFH.historyitem_Ph_SetIdx] = CChangesDrawingsString;
@@ -894,6 +895,15 @@
 			return b === true || b === false;
 		}
 
+		// Own realization of Object.groupBy for IE11 compatibility
+		function groupBy(arr, callback) {
+			return arr.reduce(function (storage, item) {
+				let group = callback(item);
+				storage[group] = storage[group] || [];
+				storage[group].splice(0, 0, item);
+				return storage;
+			}, {});
+		}
 
 		function writeLong(w, val) {
 			w.WriteBool(isRealNumber(val));
@@ -6761,6 +6771,8 @@
 			this.userDrawn = null;
 			this.ph = null;
 			this.unimedia = null;
+
+			this.extLst = [];
 		}
 
 		InitClass(NvPr, CBaseFormatObject, AscDFH.historyitem_type_NvPr);
@@ -6775,6 +6787,10 @@
 		NvPr.prototype.setPh = function (ph) {
 			AscCommon.History.Add(new CChangesDrawingsObject(this, AscDFH.historyitem_NvPr_SetPh, this.ph, ph));
 			this.ph = ph;
+		};
+		NvPr.prototype.addExt = function (ext) {
+			History.Add(new CChangesDrawingsContentNoId(this, AscDFH.historyitem_NvPr_AddExt, this.extLst.length, [ext], true));
+			this.extLst.push(ext);
 		};
 		NvPr.prototype.setUniMedia = function (pr) {
 			AscCommon.History.Add(new CChangesDrawingsObjectNoId(this, AscDFH.historyitem_NvPr_SetUniMedia, this.unimedia, pr));
@@ -7944,6 +7960,12 @@
 				this.setFill(this.ln.Fill.createDuplicate());
 			}
 		};
+		CSpPr.prototype.getOuterShdw = function () {
+			if (this.effectProps && this.effectProps.EffectLst && this.effectProps.EffectLst.outerShdw) {
+				return this.effectProps.EffectLst.outerShdw;
+			}
+			return null;
+		};
 // ----------------------------------
 
 // THEME ----------------------------
@@ -8352,6 +8374,7 @@
 		};
 
 		drawingConstructorsMap[AscDFH.historyitem_ExtraClrScheme_SetClrScheme] = ClrScheme;
+		drawingConstructorsMap[AscDFH.historyitem_NvPr_AddExt] = CExtP;
 
 		function FontCollection(fontScheme) {
 			CBaseNoIdObject.call(this);
@@ -8867,6 +8890,13 @@
 			}
 			return null;
 		};
+		CTheme.prototype.GetPresentation = function () {
+			let oLogicDoc = this.GetLogicDocument();
+			if(AscCommonSlide.CPresentation && oLogicDoc instanceof AscCommonSlide.CPresentation) {
+				return oLogicDoc;
+			}
+			return null;
+		};
 		CTheme.prototype.GetAllSlideIndexes = function () {
 			let oPresentation = this.GetLogicDocument();
 			let aSlides = this.GetPresentationSlides();
@@ -8900,6 +8930,22 @@
 						let oApi = oWordGraphicObject.document.Api;
 						oApi.chartPreviewManager.clearPreviews();
 						oApi.textArtPreviewManager.clear();
+					}
+					else {
+						let oPresentation = this.GetPresentation();
+						if(oPresentation) {
+							let oThemedObjects = oPresentation.GetSlideObjectsWithTheme(this);
+							for(let nIdx = 0; nIdx < oThemedObjects.masters.length; ++nIdx) {
+								oThemedObjects.masters[nIdx].checkSlideTheme();
+							}
+							for(let nIdx = 0; nIdx < oThemedObjects.layouts.length; ++nIdx) {
+								oThemedObjects.layouts[nIdx].checkSlideTheme();
+							}
+							for(let nIdx = 0; nIdx < oThemedObjects.slides.length; ++nIdx) {
+								oThemedObjects.slides[nIdx].checkSlideTheme();
+							}
+							AscCommon.History.RecalcData_Add({Type: AscDFH.historyitem_recalctype_Drawing, Object: this});
+						}
 					}
 				}
 				else if(oData.Type === AscDFH.historyitem_ThemeSetFontScheme) {
@@ -9441,7 +9487,7 @@
 		function redrawSlide(slide, presentation, arrInd, pos, direction, arr_slides) {
 			if (slide) {
 				slide.recalculate();
-				presentation.DrawingDocument.OnRecalculatePage(slide.num, slide);
+				presentation.DrawingDocument.OnRecalculateSlide(presentation.GetSlideIndex(slide));
 			}
 			if (direction === 0) {
 				if (pos > 0) {
@@ -13683,6 +13729,38 @@
 		InitClass(IdEntry, CBaseNoIdObject, undefined);
 
 
+		function CExtP() {
+			this.st = null;
+			this.end = null;
+		}
+		InitClass(CExtP, CBaseNoIdObject, undefined);
+
+		CExtP.prototype.readAttribute = function (nType, pReader) {
+			switch (nType) {
+				case 0: {
+					// id. embed / link
+					pReader.stream.Skip2(4);
+					break;
+				}
+				case 1: {
+					this.st = pReader.stream.GetDouble();
+					break;
+				}
+				case 2: {
+					this.end = pReader.stream.GetDouble();
+					break;
+				}
+			}
+		};
+		CExtP.prototype.Write_ToBinary = function (w) {
+			writeDouble(w, this.st);
+			writeDouble(w, this.end);
+		};
+		CExtP.prototype.Read_FromBinary = function (r) {
+			this.st = readDouble(r);
+			this.end = readDouble(r);
+		};
+
 		function CreateSchemeUnicolorWithMods(id, aMods) {
 			let oColor = new CUniColor();
 			oColor.color = new CSchemeColor();
@@ -17804,12 +17882,36 @@
 		}
 
 		const OBJECT_MORPH_MARKER = "!!";
+
+		function IsEqualObjects(obj1, obj2) {
+			let iO = AscCommon.isRealObject;
+			let iN = AscFormat.isRealNumber;
+			let iEN = AscFormat.fApproxEqual;
+			if(!iO(obj1) && iO(obj2) || iO(obj1) && !iO(obj2)) return false;
+			for(let sKey in obj1) {
+				if(obj1.hasOwnProperty(sKey)) {
+					let pr1 = obj1[sKey];
+					let pr2 = obj2[sKey];
+					if(iO(pr1)) {
+						if(!IsEqualObjects(pr1, pr2)) return false;
+					}
+					else if(iN(pr1)) {
+						if(!iEN(pr1, pr2)) return false;
+					}
+					else {
+						if(pr1 !== pr2) return false;
+					}
+				}
+			}
+			return true;
+		}
 //----------------------------------------------------------export----------------------------------------------------
 		window['AscFormat'] = window['AscFormat'] || {};
 		window['AscFormat'].CreateFontRef = CreateFontRef;
 		window['AscFormat'].CreatePresetColor = CreatePresetColor;
 		window['AscFormat'].isRealNumber = isRealNumber;
 		window['AscFormat'].isRealBool = isRealBool;
+		window['AscFormat'].groupBy = groupBy;
 		window['AscFormat'].writeLong = writeLong;
 		window['AscFormat'].readLong = readLong;
 		window['AscFormat'].writeDouble = writeDouble;
@@ -17970,22 +18072,22 @@
 		window['AscFormat'].LineJoinType = LineJoinType;
 
 //типы плейсхолдеров
-		window['AscFormat'].phType_body = 0;
-		window['AscFormat'].phType_chart = 1;
-		window['AscFormat'].phType_clipArt = 2; //(Clip Art)
-		window['AscFormat'].phType_ctrTitle = 3; //(Centered Title)
-		window['AscFormat'].phType_dgm = 4; //(Diagram)
-		window['AscFormat'].phType_dt = 5; //(Date and Time)
-		window['AscFormat'].phType_ftr = 6; //(Footer)
-		window['AscFormat'].phType_hdr = 7; //(Header)
-		window['AscFormat'].phType_media = 8; //(Media)
-		window['AscFormat'].phType_obj = 9; //(Object)
-		window['AscFormat'].phType_pic = 10; //(Picture)
-		window['AscFormat'].phType_sldImg = 11; //(Slide Image)
-		window['AscFormat'].phType_sldNum = 12; //(Slide Number)
-		window['AscFormat'].phType_subTitle = 13; //(Subtitle)
-		window['AscFormat'].phType_tbl = 14; //(Table)
-		window['AscFormat'].phType_title = 15; //(Title)
+		window['AscFormat']["phType_body"] = window['AscFormat'].phType_body = 0;
+		window['AscFormat']["phType_chart"] = window['AscFormat'].phType_chart = 1;
+		window['AscFormat']["phType_clipArt"] = window['AscFormat'].phType_clipArt = 2;
+		window['AscFormat']["phType_ctrTitle"] = window['AscFormat'].phType_ctrTitle = 3;
+		window['AscFormat']["phType_dgm"] = window['AscFormat'].phType_dgm = 4;
+		window['AscFormat']["phType_dt"] = window['AscFormat'].phType_dt = 5;
+		window['AscFormat']["phType_ftr"] = window['AscFormat'].phType_ftr = 6;
+		window['AscFormat']["phType_hdr"] = window['AscFormat'].phType_hdr = 7;
+		window['AscFormat']["phType_media"] = window['AscFormat'].phType_media = 8;
+		window['AscFormat']["phType_obj"] = window['AscFormat'].phType_obj = 9;
+		window['AscFormat']["phType_pic"] = window['AscFormat'].phType_pic = 10;
+		window['AscFormat']["phType_sldImg"] = window['AscFormat'].phType_sldImg = 11;
+		window['AscFormat']["phType_sldNum"] = window['AscFormat'].phType_sldNum = 12;
+		window['AscFormat']["phType_subTitle"] = window['AscFormat'].phType_subTitle = 13;
+		window['AscFormat']["phType_tbl"] = window['AscFormat'].phType_tbl = 14;
+		window['AscFormat']["phType_title"] = window['AscFormat'].phType_title = 15;
 
 		window['AscFormat'].fntStyleInd_none = 2;
 		window['AscFormat'].fntStyleInd_major = 0;
@@ -18123,6 +18225,7 @@
 		window['AscFormat'].CVariantVStream = CVariantVStream;
 		window['AscFormat'].fRGBAToHexString = fRGBAToHexString;
 		window['AscFormat'].RefreshContentAllFields = RefreshContentAllFields;
+		window['AscFormat'].IsEqualObjects = IsEqualObjects;
 		window['AscFormat'].szPh_full = szPh_full;
 		window['AscFormat'].szPh_half = szPh_half;
 		window['AscFormat'].szPh_quarter = szPh_quarter;

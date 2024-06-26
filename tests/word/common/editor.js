@@ -66,7 +66,8 @@
 		SetCurrentPage : function(pageNum) {},
 		SelectClear : function() {},
 		Start_CollaborationEditing : function() {},
-		End_CollaborationEditing : function() {}
+		End_CollaborationEditing : function() {},
+		ConvertCoordsToCursorWR : function() {return {X : 0, Y : 0};}
 	};
 
 	drawingDocument.CanvasHit = document.createElement('canvas');
@@ -144,6 +145,10 @@
 	editor.getSpeechDescription = function()
 	{
 		return AscTest.GetLogicDocument().getSpeechDescription(...arguments);
+	};
+	editor.getGraphicController = function()
+	{
+		return AscTest.GetLogicDocument().DrawingObjects;
 	};
 	editor._addRemoveSpaceBeforeAfterParagraph = AscCommon.DocumentEditorApi.prototype._addRemoveSpaceBeforeAfterParagraph.bind(editor);
 	editor.asc_addSpaceBeforeParagraph = AscCommon.DocumentEditorApi.prototype.asc_addSpaceBeforeParagraph.bind(editor);

@@ -2746,8 +2746,43 @@ Paragraph.prototype.drawRunHighlight = function(CurPage, pGraphics, Pr, drawStat
 					}
 					else if (sValue)
 					{
-						var _sValue = sAnchor ? sValue + "#" + sAnchor : sValue;
-						pGraphics.AddHyperlink(_l, _t, _r - _l, _b - _t, _sValue, _sValue);
+						if (AscCommon.IsLinkPPAction(sValue))
+						{
+							let oLogicDocument	= Asc.editor.private_GetLogicDocument();
+							let nCurPage		= Asc.editor.isPdfEditor() ? oLogicDocument.GetCurPage() : oLogicDocument.Get_CurPage();
+							let nPagesCount		= Asc.editor.isPdfEditor() ? oLogicDocument.GetPagesCount() : oLogicDocument.GetSlidesCount();
+							
+							if (sValue == "ppaction://hlinkshowjump?jump=firstslide")
+							{
+								pGraphics.AddLink(_l, _t, _r - _l, _b - _t, 0, 0, 0);
+							}
+							else if (sValue == "ppaction://hlinkshowjump?jump=lastslide")
+							{
+								pGraphics.AddLink(_l, _t, _r - _l, _b - _t, 0, 0, nPagesCount - 1);
+							}
+							else if (sValue == "ppaction://hlinkshowjump?jump=nextslide")
+							{
+								pGraphics.AddLink(_l, _t, _r - _l, _b - _t, 0, 0, nCurPage + 1);
+							}
+							else if (sValue == "ppaction://hlinkshowjump?jump=previousslide")
+							{
+								pGraphics.AddLink(_l, _t, _r - _l, _b - _t, 0, 0, nCurPage - 1);
+							}
+							else
+							{
+								let mask	= "ppaction://hlinksldjumpslide";
+								let posNum	= sValue.indexOf(mask);
+								if (0 == posNum)
+								{
+									let pageNum = parseInt(sValue.substring(mask.length));
+									pGraphics.AddLink(_l, _t, _r - _l, _b - _t, 0, 0, pageNum);
+								}
+							}
+						}
+						else {
+							var _sValue = sAnchor ? sValue + "#" + sAnchor : sValue;
+							pGraphics.AddHyperlink(_l, _t, _r - _l, _b - _t, _sValue, _sValue);
+						}
 					}
 					else if (sAnchor)
 					{
@@ -5798,6 +5833,21 @@ Paragraph.prototype.private_CorrectPosInCombiningMark = function(oContentPos, is
 {
 	let oSearchPos;
 	let oCurrentPos  = oContentPos;
+	
+	function canCombinePositions(nextPos)
+	{
+		let depth = oContentPos.GetDepth();
+		if (depth !== nextPos.GetDepth())
+			return false;
+		
+		for (let i = 0; i < depth - 2; ++i)
+		{
+			if (oContentPos.Get(i) !== nextPos.Get(i))
+				return false;
+			
+		}
+		return true;
+	}
 
 	while (true)
 	{
@@ -5806,8 +5856,8 @@ Paragraph.prototype.private_CorrectPosInCombiningMark = function(oContentPos, is
 
 		if (!oPrev
 			|| !oNext
-			|| !oPrev.IsText()
-			|| !oNext.IsText()
+			|| (!oPrev.IsText() && !oPrev.IsMathText())
+			|| (!oNext.IsText() && !oNext.IsMathText())
 			|| !oNext.IsCombiningMark())
 			break;
 
@@ -5823,8 +5873,12 @@ Paragraph.prototype.private_CorrectPosInCombiningMark = function(oContentPos, is
 
 		if (!oSearchPos.IsFound())
 			break;
-
-		oCurrentPos = oSearchPos.GetPos().Copy();
+		
+		let newPos = oSearchPos.GetPos();
+		if (!canCombinePositions(newPos))
+			break;
+		
+		oCurrentPos = newPos.Copy();
 	}
 
 	return oCurrentPos;
@@ -6663,6 +6717,8 @@ Paragraph.prototype.GetNextRunElement = function(oParaPos)
 	let _oParaPos = oParaPos ? oParaPos : this.Get_ParaContentPos(this.Selection.Use, false, false);
 
 	var oRunElements = new CParagraphRunElements(_oParaPos, 1, null);
+	oRunElements.SkipMath = false;
+
 	this.GetNextRunElements(oRunElements);
 
 	if (oRunElements.Elements.length <= 0)
@@ -6680,6 +6736,8 @@ Paragraph.prototype.GetPrevRunElement = function(oParaPos)
 	let _oParaPos = oParaPos ? oParaPos : this.Get_ParaContentPos(this.Selection.Use, false, false)
 
 	var oRunElements = new CParagraphRunElements(_oParaPos, 1, null, true);
+	oRunElements.SkipMath = false;
+
 	this.GetPrevRunElements(oRunElements);
 
 	if (oRunElements.Elements.length <= 0)
@@ -13557,7 +13615,7 @@ Paragraph.prototype.ConcatBefore = function(oPara, nSelection)
 	let nCount = oPara.Content.length;
 	for (let nPos = 0; nPos < nCount; ++nPos)
 	{
-		this.AddToContent(nPos, oPara.Content[nPos].Copy());
+		this.AddToContent(nPos, oPara.Content[nPos].Copy(false, {CopyReviewPr : true}));
 	}
 
 	// Класс нужно почистить, чтобы сообщить внутренним классам, что они больше не используются
@@ -13698,6 +13756,7 @@ Paragraph.prototype.GetSelectionState = function()
 		X          : this.CurPos.X,
 		Y          : this.CurPos.Y,
 		Line       : this.CurPos.Line,
+		Range      : this.CurPos.Range,
 		ContentPos : this.Get_ParaContentPos(false, false),
 		RealX      : this.CurPos.RealX,
 		RealY      : this.CurPos.RealY,
@@ -13726,22 +13785,22 @@ Paragraph.prototype.SetSelectionState = function(State, StateIndex)
 		return;
 
 	var ParaState = State[StateIndex];
-
+	
+	this.RemoveSelection();
+	this.Set_ParaContentPos(ParaState.CurPos.ContentPos, true, -1, -1, false);
+	
 	this.CurPos.X        = ParaState.CurPos.X;
 	this.CurPos.Y        = ParaState.CurPos.Y;
 	this.CurPos.Line     = ParaState.CurPos.Line;
+	this.CurPos.Range    = ParaState.CurPos.Range;
 	this.CurPos.RealX    = ParaState.CurPos.RealX;
 	this.CurPos.RealY    = ParaState.CurPos.RealY;
 	this.CurPos.PagesPos = ParaState.CurPos.PagesPos;
-
-	this.Set_ParaContentPos(ParaState.CurPos.ContentPos, true, -1, -1, false);
-
-	this.RemoveSelection();
-
+	
 	this.Selection.Start = ParaState.Selection.Start;
 	this.Selection.Use   = ParaState.Selection.Use;
 	this.Selection.Flag  = ParaState.Selection.Flag;
-
+	
 	if (true === this.Selection.Use)
 		this.Set_SelectionContentPos(ParaState.Selection.StartPos, ParaState.Selection.EndPos);
 };
@@ -18742,6 +18801,10 @@ Paragraph.prototype.getLayoutFontSizeCoefficient = function()
 	// 	return this.getLayoutScaleCoefficient();
 	
 	return logicDocument.GetDocumentLayout().GetFontScale();
+};
+Paragraph.prototype.isRtlDirection = function()
+{
+	return !!this.Get_CompiledPr2(false).ParaPr.Bidi;
 };
 
 Paragraph.prototype.asc_getText = function()

@@ -689,6 +689,7 @@
 		this.restrictions = val;
 		this.onUpdateRestrictions(additionalSettings);
 		this.checkInputMode();
+		this.sendEvent("asc_onChangeRestrictions", this.restrictions);
 	};
 	baseEditorsApi.prototype.getViewMode                     = function()
 	{
@@ -699,12 +700,14 @@
 		this.restrictions |= val;
 		this.onUpdateRestrictions();
 		this.checkInputMode();
+		this.sendEvent("asc_onChangeRestrictions", this.restrictions);
 	};
 	baseEditorsApi.prototype.asc_removeRestriction           = function(val)
 	{
 		this.restrictions &= ~val;
 		this.onUpdateRestrictions();
 		this.checkInputMode();
+		this.sendEvent("asc_onChangeRestrictions", this.restrictions);
 	};
 	baseEditorsApi.prototype.asc_setCanSendChanges           = function(canSend)
 	{
@@ -2190,6 +2193,14 @@
 			//todo move cmd from header to body and uncomment
 			// jsonparams["translate"] = AscCommon.translateManager.mapTranslate;
 			jsonparams["documentLayout"] = { "openedAt" : this.openedAt};
+			if (this.watermarkDraw && this.watermarkDraw.inputContentSrc) {
+				jsonparams["watermark"] = JSON.parse(this.watermarkDraw.inputContentSrc);
+			}
+			oAdditionalData["jsonparams"] = jsonparams;
+		} else if ((Asc.c_oAscFileType.PDF === options.fileType || Asc.c_oAscFileType.PDFA === options.fileType) &&
+			this.watermarkDraw && this.watermarkDraw.inputContentSrc) {
+			let jsonparams = {};
+			jsonparams["watermark"] = JSON.parse(this.watermarkDraw.inputContentSrc);
 			oAdditionalData["jsonparams"] = jsonparams;
 		}
 		if (options.textParams && undefined !== options.textParams.asc_getAssociation()) {
@@ -2852,6 +2863,7 @@
 		if(this.editorId === c_oEditorId.Word)
 		{
 			arrToDownload.push(AscCommon.g_sWordPlaceholderImage);
+			arrToDownload.push(AscCommon.g_sWordPlaceholderFormImage);
 		}
 		this.ImageLoader.LoadImagesWithCallback(arrToDownload, function () {
 
@@ -3004,7 +3016,7 @@
                 else
 				{
 					var transition = this.WordControl.DemonstrationManager.Transition;
-                    if ((manager.SlideNum >= 0 && manager.SlideNum < manager.SlidesCount) && (!transition || !transition.IsPlaying()))
+                    if ((manager.SlideNum >= 0 && manager.SlideNum < this.WordControl.GetSlidesCount()) && (!transition || !transition.IsPlaying()))
                     {
 						var _x = (transition.Rect.x / AscCommon.AscBrowser.retinaPixelRatio) >> 0;
 						var _y = (transition.Rect.y / AscCommon.AscBrowser.retinaPixelRatio) >> 0;
@@ -3036,12 +3048,90 @@
             }
 		}
 	};
-	baseEditorsApi.prototype.hideVideoControl = function()
+	baseEditorsApi.prototype.hideMediaControl = function()
 	{
-        if (!window["AscDesktopEditor"] || !window["AscDesktopEditor"]["MediaEnd"])
-            return;
-        window["AscDesktopEditor"]["MediaEnd"]();
+
+		if(this.mediaData)
+		{
+			this.callMediaPlayerCommand("hideMediaControl", null);
+		}
 	};
+	baseEditorsApi.prototype.asc_hideMediaControl = function()
+	{
+		this.hideMediaControl();
+	};
+
+
+	baseEditorsApi.prototype.asc_onMediaPlayerEvent = function(evt, mediaData)
+	{
+
+	};
+	baseEditorsApi.prototype.getMediaData = function()
+	{
+		if(this.mediaData && !this.mediaData.isValid())
+			this.mediaData = null;
+		return this.mediaData;
+	};
+
+	baseEditorsApi.prototype.getPlayerData = function (sCmd)
+	{
+		if(!sCmd) return null;
+		if(!this.mediaData) return {"Cmd": sCmd};
+
+		let oPlayerData = null;
+		switch (this.editorId)
+		{
+			case c_oEditorId.Word:
+			{
+				break;
+			}
+			case c_oEditorId.Presentation:
+			{
+				oPlayerData = this.WordControl.GetMediaPlayerData(this.mediaData);
+
+				break;
+			}
+			case c_oEditorId.Spreadsheet:
+			{
+				break;
+			}
+		}
+
+		if(oPlayerData)
+		{
+			let sCmd_ = sCmd;
+			if(sCmd.startsWith("playFrom") === 0)
+			{
+				sCmd_ = "play";
+				oPlayerData["Cmd"] = "play";
+			}
+			oPlayerData["Cmd"] = sCmd_;
+		}
+		return oPlayerData;
+	};
+
+	baseEditorsApi.prototype.onUpdateMediaPlayer = function()
+	{
+		if(this.mediaData)
+		{
+			this.callMediaPlayerCommand("update", this.mediaData);
+		}
+	};
+	baseEditorsApi.prototype.callMediaPlayerCommand = function(sCmd, oMediaData)
+	{
+		this.mediaData = oMediaData;
+		if(!sCmd) return;
+		if (window["AscDesktopEditor"] && window["AscDesktopEditor"]["CallMediaPlayerCommand"])
+		{
+			let oData = this.getPlayerData(sCmd);
+			if(!AscFormat.IsEqualObjects(this.lastPlCompareOayerData, oData))
+			{
+				window["AscDesktopEditor"]["CallMediaPlayerCommand"](oData);
+				this.lastPlCompareOayerData = oData;
+			}
+		}
+	};
+
 	// plugins
 	baseEditorsApi.prototype._checkLicenseApiFunctions   = function()
 	{
@@ -3264,6 +3354,10 @@
 		{
 			window["AscInputMethod"][_prop] = _obj[_prop];
 		}
+	};
+	baseEditorsApi.prototype.asc_getInputLanguage = function()
+	{
+		return lcid_enUS;
 	};
 
 	baseEditorsApi.prototype.asc_addSignatureLine = function (oPr, Width, Height, sImgUrl) {
@@ -4518,7 +4612,10 @@
 	// ---------------------------------------------------- interface events ---------------------------------------------
 	baseEditorsApi.prototype["asc_onShowPopupWindow"] = function()
 	{
-		this.hideVideoControl();
+		if(this.mediaData)
+		{
+			this.callMediaPlayerCommand("hideMediaControl", null);
+		}
 	};
 
 
@@ -4818,7 +4915,9 @@
 	baseEditorsApi.prototype.getInkCursorType = function() {
 		return this.inkDrawer.getCursorType();
 	};
-	
+	baseEditorsApi.prototype.isMasterMode = function(){
+		return false;
+	};
 	baseEditorsApi.prototype.getSelectionState = function() {
 	};
 	baseEditorsApi.prototype.getSpeechDescription = function(prevState, action) {
@@ -4935,7 +5034,7 @@
 		}
 	};
 
-	baseEditorsApi.prototype.wrapEvent = function(name, types) 
+	baseEditorsApi.prototype.wrapEvent = function(name) 
 	{
 		this.asc_registerCallback(name, function()
 		{
@@ -4944,7 +5043,7 @@
 				if (arguments[i] && arguments[i].toCValue)
 					arguments[i] = arguments[i].toCValue();
 			}
-			window["native"]["onJsEvent"](name, arguments);
+			window["native"]["onJsEvent"](name, Array.from(arguments));
 		});
 	};
 
@@ -5019,6 +5118,9 @@
 	prot['asc_setContentDarkMode'] = prot.asc_setContentDarkMode;
 	prot['asc_getFilePath'] = prot.asc_getFilePath;
 	prot['asc_openDocumentFromBytes'] = prot.asc_openDocumentFromBytes;
+	prot['asc_onMediaPlayerEvent'] = prot.asc_onMediaPlayerEvent;
+	prot['asc_hideMediaControl'] = prot.asc_hideMediaControl;
+	prot['asc_getInputLanguage'] = prot.asc_getInputLanguage;
 
 	// passwords
 	prot["asc_setCurrentPassword"] = prot.asc_setCurrentPassword;

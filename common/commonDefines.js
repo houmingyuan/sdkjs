@@ -3011,6 +3011,14 @@ window.AscCommon.g_cIsBeta = "false";
 		Text : 0x00,
 		Num  : 0x01
 	};
+	
+	var c_oAscChapterSep = {
+		Colon : 0,
+		EmDash : 1,
+		EnDash : 2,
+		Hyphen : 3,
+		Period : 4
+	};
 
 	var c_oAscSdtAppearance = {
 		Frame  : 1,
@@ -4953,6 +4961,7 @@ window.AscCommon.g_cIsBeta = "false";
 	prot['Review']       = prot.Review;
 	prot['Eyedropper']   = prot.Eyedropper;
 	prot['Placeholder']   = prot.Placeholder;
+	prot['EffectInfo']   = prot.EffectInfo;
 
 	window['Asc']['c_oAscMaxTooltipLength'] = window['Asc'].c_oAscMaxTooltipLength = c_oAscMaxTooltipLength;
 	window['Asc']['c_oAscMaxCellOrCommentLength'] = window['Asc'].c_oAscMaxCellOrCommentLength = c_oAscMaxCellOrCommentLength;
@@ -5562,6 +5571,14 @@ window.AscCommon.g_cIsBeta = "false";
 	prot = c_oAscNumberingLvlTextType;
 	prot['Text'] = c_oAscNumberingLvlTextType.Text;
 	prot['Num']  = c_oAscNumberingLvlTextType.Num;
+	
+	window['Asc']['c_oAscChapterSep'] = window['Asc'].c_oAscChapterSep = c_oAscChapterSep;
+	prot = c_oAscChapterSep;
+	prot['Colon'] = c_oAscChapterSep.Colon;
+	prot['EmDash']  = c_oAscChapterSep.EmDash;
+	prot['EnDash']  = c_oAscChapterSep.EnDash;
+	prot['Hyphen']  = c_oAscChapterSep.Hyphen;
+	prot['Period']  = c_oAscChapterSep.Period;
 
 	prot = window['Asc']['c_oAscSdtAppearance'] = window['Asc'].c_oAscSdtAppearance = c_oAscSdtAppearance;
 	prot['Frame']  = c_oAscSdtAppearance.Frame;

@@ -175,7 +175,8 @@ CInlineLevelSdt.prototype.Copy = function(isUseSelection, oPr)
 
 	if (nStartPos <= nEndPos)
 		oContentControl.ClearContent();
-
+	
+	AscCommon.History.skipFormFillingLockCheck(true);
 	for (var nCurPos = nStartPos; nCurPos <= nEndPos; ++nCurPos)
 	{
 		var oItem = this.Content[nCurPos];
@@ -185,6 +186,7 @@ CInlineLevelSdt.prototype.Copy = function(isUseSelection, oPr)
 		else
 			oContentControl.AddToContent(nCurPos - nStartPos, oItem.Copy(false, oPr));
 	}
+	AscCommon.History.skipFormFillingLockCheck(false);
 
 	// ВАЖНО: настройки копируем после копирования содержимого, потому что есть специальные случаи, когда
 	//        содержимое дальше меняется в зависимости от настроек (например, для радио кнопок)
@@ -2143,9 +2145,11 @@ CInlineLevelSdt.prototype.private_UpdatePictureContent = function(_nW, _nH)
 
 		var nW = _nW ? _nW : 50;
 		var nH = _nH ? _nH : 50;
+		
+		let placholderImage = this.IsForm() ? AscCommon.g_sWordPlaceholderFormImage : AscCommon.g_sWordPlaceholderImage;
 
 		oDrawing   = new ParaDrawing(nW, nH, null, oDrawingObjects, oLogicDocument, null);
-		var oImage = oDrawingObjects.createImage(AscCommon.g_sWordPlaceholderImage, 0, 0, nW, nH);
+		var oImage = oDrawingObjects.createImage(placholderImage, 0, 0, nW, nH);
 		oImage.setParent(oDrawing);
 		oDrawing.Set_GraphicObject(oImage);
 	}
@@ -3072,7 +3076,7 @@ CInlineLevelSdt.prototype.ConvertFormToFixed = function(nW, nH)
 	drawing.Set_PositionV(Asc.c_oAscRelativeFromV.Page, false, Y, false);
 	drawing.Set_Distance(0, 0, 0, 0);
 	drawing.Set_DrawingType(drawing_Anchor);
-	drawing.Set_WrappingType(WRAPPING_TYPE_SQUARE);
+	drawing.Set_WrappingType(WRAPPING_TYPE_NONE);
 	drawing.Set_BehindDoc(false);
 	
 	var oRun = new ParaRun(oParagraph, false);
@@ -3238,7 +3242,7 @@ CInlineLevelSdt.prototype.ConvertFormToInline = function()
 		var nInRunPos = -1;
 		for (var nPos = 0, nRunLen = oRun.GetElementsCount(); nPos < nRunLen; ++nPos)
 		{
-			if (oRun.GetElement() === oParaDrawing)
+			if (oRun.GetElement(nPos) === oParaDrawing)
 			{
 				nInRunPos = nPos;
 				break;

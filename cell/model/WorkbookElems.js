@@ -6298,7 +6298,8 @@ StyleManager.prototype =
 			null == this.CustomWidth && 0 === this.outlineLevel && false == this.collapsed;
 	};
 	Col.prototype.isUpdateScroll = function () {
-		return null !== this.hd || null !== this.xfs || 0 !== this.outlineLevel || false !== this.collapsed;
+		//TODO temporary added check on CustomWidth -> nColsCount common for scroll/draw. need separate nColsCount for draw and for scroll
+		return null !== this.hd || null !== this.xfs || 0 !== this.outlineLevel || false !== this.collapsed || true === this.CustomWidth;
 	};
 	Col.prototype.clone = function (oNewWs) {
 		if (!oNewWs) {
@@ -8437,6 +8438,11 @@ function RangeDataManagerElem(bbox, data)
 			this.TableColumns[i].getAllFormulas(formulas);
 		}
 	};
+	TablePart.prototype.forEachFormula = function (callback) {
+		for (let i = 0; i < this.TableColumns.length; ++i) {
+			this.TableColumns[i].forEachFormula(callback);
+		}
+	};
 	TablePart.prototype.moveRef = function (col, row) {
 		let ref = this.Ref.clone();
 		ref.setOffset(new AscCommon.CellBase(row || 0, col || 0));
@@ -9901,6 +9907,11 @@ function RangeDataManagerElem(bbox, data)
 			formulas.push(this.TotalsRowFormula);
 		}
 	};
+	TableColumn.prototype.forEachFormula = function (callback) {
+		if (this.TotalsRowFormula) {
+			callback(this.TotalsRowFormula);
+		}
+	};
 	TableColumn.prototype.clone = function () {
 		var res = new TableColumn();
 		res.Name = this.Name;
@@ -11122,6 +11133,12 @@ function RangeDataManagerElem(bbox, data)
 		var isDigitValue = !isNaN(val);
 		if (!isDigitValue) {
 			val = val.toLowerCase();
+		} else {
+			let isQuotePrefix = cell && cell.getQuotePrefix();
+			if (isQuotePrefix) {
+				isDigitValue = false;
+				val = val.toLowerCase();
+			}
 		}
 
 		var checkComplexSymbols = null, filterVal;
@@ -13400,43 +13417,45 @@ function RangeDataManagerElem(bbox, data)
 		return res;
 	};
 	asc_CPageOptions.prototype.setJson = function (props) {
-		this.gridLines = props["gridLines"];
-		this.headings = props["headings"];
-		this.gridLinesSet = props["gridLinesSet"];
-		this.horizontalCentered = props["horizontalCentered"];
-		this.horizontalCentered = props["horizontalCentered"];
-		this.verticalCentered = props["verticalCentered"];
+		let checkOnNull = function (to, from) {
+			return to != null ? to : from;
+		};
 
-		this.pageMargins.bottom = props["pageMargins"]["bottom"];
-		this.pageMargins.footer = props["pageMargins"]["footer"];
-		this.pageMargins.header = props["pageMargins"]["header"];
-		this.pageMargins.left = props["pageMargins"]["left"];
-		this.pageMargins.right = props["pageMargins"]["right"];
-		this.pageMargins.top = props["pageMargins"]["top"];
-		this.pageMargins.bottom = props["pageMargins"]["bottom"];
+		this.gridLines = checkOnNull(props["gridLines"], this.gridLines);
+		this.headings = checkOnNull(props["headings"], this.headings);
+		this.gridLinesSet = checkOnNull(props["gridLinesSet"], this.gridLinesSet);
+		this.horizontalCentered = checkOnNull(props["horizontalCentered"], this.horizontalCentered);
+		this.verticalCentered = checkOnNull(props["verticalCentered"], this.verticalCentered);
 
-		this.pageSetup.blackAndWhite = props["pageSetup"]["blackAndWhite"];
-		this.pageSetup.cellComments = props["pageSetup"]["cellComments"];
-		this.pageSetup.copies = props["pageSetup"]["copies"];
-		this.pageSetup.draft = props["pageSetup"]["draft"];
-		this.pageSetup.errors = props["pageSetup"]["errors"];
-		this.pageSetup.firstPageNumber = props["pageSetup"]["firstPageNumber"];
-		this.pageSetup.fitToHeight = props["pageSetup"]["fitToHeight"];
-		this.pageSetup.fitToWidth = props["pageSetup"]["fitToWidth"];
-		this.pageSetup.headerFooter = props["pageSetup"]["headerFooter"];
-		this.pageSetup.height = props["pageSetup"]["height"];
-		this.pageSetup.horizontalDpi = props["pageSetup"]["horizontalDpi"];
-		this.pageSetup.orientation = props["pageSetup"]["orientation"];
-		this.pageSetup.pageOrder = props["pageSetup"]["pageOrder"];
-		this.pageSetup.paperUnits = props["pageSetup"]["paperUnits"];
-		this.pageSetup.printArea = props["pageSetup"]["printArea"];
-		this.pageSetup.scale = props["pageSetup"]["scale"];
-		this.pageSetup.useFirstPageNumber = props["pageSetup"]["useFirstPageNumber"];
-		this.pageSetup.usePrinterDefaults = props["pageSetup"]["usePrinterDefaults"];
-		this.pageSetup.verticalDpi = props["pageSetup"]["verticalDpi"];
-		this.pageSetup.width = props["pageSetup"]["width"];
+		this.pageMargins.bottom = checkOnNull(props["pageMargins"]["bottom"], this.pageMargins.bottom);
+		this.pageMargins.footer = checkOnNull(props["pageMargins"]["footer"], this.pageMargins.footer);
+		this.pageMargins.header = checkOnNull(props["pageMargins"]["header"], this.pageMargins.header);
+		this.pageMargins.left = checkOnNull(props["pageMargins"]["left"], this.pageMargins.left);
+		this.pageMargins.right = checkOnNull(props["pageMargins"]["right"], this.pageMargins.right);
+		this.pageMargins.top = checkOnNull(props["pageMargins"]["top"], this.pageMargins.top);
+		this.pageMargins.bottom = checkOnNull(props["pageMargins"]["bottom"], this.pageMargins.bottom);
 
-		this.pageSetup.headerFooter = props["pageSetup"]["headerFooter"];
+		this.pageSetup.blackAndWhite = checkOnNull(props["pageSetup"]["blackAndWhite"], this.pageSetup.blackAndWhite);
+		this.pageSetup.cellComments = checkOnNull(props["pageSetup"]["cellComments"], this.pageSetup.cellComments);
+		this.pageSetup.copies = checkOnNull(props["pageSetup"]["copies"],this.pageSetup.copies);
+		this.pageSetup.draft = checkOnNull(props["pageSetup"]["draft"], this.pageSetup.draft);
+		this.pageSetup.errors = checkOnNull(props["pageSetup"]["errors"],this.pageSetup.errors);
+		this.pageSetup.firstPageNumber = checkOnNull(props["pageSetup"]["firstPageNumber"]< this.pageSetup.firstPageNumber);
+		this.pageSetup.fitToHeight = checkOnNull(props["pageSetup"]["fitToHeight"], this.pageSetup.fitToHeight);
+		this.pageSetup.fitToWidth = checkOnNull(props["pageSetup"]["fitToWidth"], this.pageSetup.fitToWidth);
+		this.pageSetup.height = checkOnNull(props["pageSetup"]["height"], this.pageSetup.height);
+		this.pageSetup.horizontalDpi = checkOnNull(props["pageSetup"]["horizontalDpi"], this.pageSetup.horizontalDpi);
+		this.pageSetup.orientation = checkOnNull(props["pageSetup"]["orientation"], this.pageSetup.orientation);
+		this.pageSetup.pageOrder = checkOnNull(props["pageSetup"]["pageOrder"], this.pageSetup.pageOrder);
+		this.pageSetup.paperUnits = checkOnNull(props["pageSetup"]["paperUnits"], this.pageSetup.paperUnits);
+		this.pageSetup.printArea = checkOnNull(props["pageSetup"]["printArea"], this.pageSetup.printArea);
+		this.pageSetup.scale = checkOnNull(props["pageSetup"]["scale"], this.pageSetup.scale);
+		this.pageSetup.useFirstPageNumber = checkOnNull(props["pageSetup"]["useFirstPageNumber"], this.pageSetup.useFirstPageNumber);
+		this.pageSetup.usePrinterDefaults = checkOnNull(props["pageSetup"]["usePrinterDefaults"], this.pageSetup.usePrinterDefaults);
+		this.pageSetup.verticalDpi = checkOnNull(props["pageSetup"]["verticalDpi"], this.pageSetup.verticalDpi);
+		this.pageSetup.width = checkOnNull(props["pageSetup"]["width"], this.pageSetup.width);
+
+		this.pageSetup.headerFooter = checkOnNull(props["pageSetup"]["headerFooter"], this.pageSetup.headerFooter);
 		/*if (ws.headerFooter) {
 			res["pageSetup"]["headerFooter"] = {
 				"alignWithMargins": ws.headerFooter.alignWithMargins,
@@ -13452,8 +13471,8 @@ function RangeDataManagerElem(bbox, data)
 			};
 		}*/
 
-		this.printTitlesHeight = props["printTitlesHeight"];
-		this.printTitlesWidth = props["printTitlesWidth"];
+		this.printTitlesHeight = checkOnNull(props["printTitlesHeight"], this.printTitlesHeight);
+		this.printTitlesWidth = checkOnNull(props["printTitlesWidth"], this.printTitlesWidth);
 	};
 	asc_CPageOptions.prototype.initPrintTitles = function () {
 		//функция добавлена только для того, чтобы в интерфейс передать текущие заголовки печати, которые хранятся как именованный диапазон
@@ -14975,6 +14994,9 @@ function RangeDataManagerElem(bbox, data)
 			if (this.worksheets[null]) {
 				this.changeSheetName(null, sheetName);
 			}
+			if (!this.worksheets[sheetName]) {
+				this.addSheetName(sheetName, true, true);
+			}
 			if (this.worksheets && this.worksheets[sheetName]) {
 				let wsTo = this.worksheets[sheetName];
 				//меняем лист
@@ -15009,7 +15031,7 @@ function RangeDataManagerElem(bbox, data)
 		//path also can changed
 		var path = oPortalData && oPortalData["path"];
 		if (path && this.Id !== path) {
-			let isNotUpdate = (AscCommonExcel.importRangeLinksState && AscCommonExcel.importRangeLinksState.notUpdateIdMap[this.Id]) || this.notUpdateId;
+			let isNotUpdate = (AscCommonExcel.importRangeLinksState && AscCommonExcel.importRangeLinksState.notUpdateIdMap && AscCommonExcel.importRangeLinksState.notUpdateIdMap[this.Id]) || this.notUpdateId;
 			!isNotUpdate && this.setId(path);
 			isChanged = true;
 		}
@@ -15089,12 +15111,21 @@ function RangeDataManagerElem(bbox, data)
 		return this.Id.match(p);
 	};
 
-	ExternalReference.prototype.addSheetName = function (name, generateDefaultStructure) {
+	ExternalReference.prototype.addSheetName = function (name, generateDefaultStructure, addSheetObj) {
 		this.SheetNames.push(name);
 		if (generateDefaultStructure) {
 			var externalSheetDataSet = new ExternalSheetDataSet();
 			externalSheetDataSet.SheetId = this.SheetNames.length - 1;
 			this.SheetDataSet.push(externalSheetDataSet);
+		}
+		if (addSheetObj) {
+			let wb = this.getWb();
+			if (!wb) {
+				wb = new AscCommonExcel.Workbook(null, window["Asc"]["editor"]);
+			}
+			let ws = new AscCommonExcel.Worksheet(wb);
+			ws.sName = name;
+			this.worksheets[name] = ws;
 		}
 	};
 
@@ -15322,6 +15353,14 @@ function RangeDataManagerElem(bbox, data)
 	};
 	asc_CExternalReference.prototype.asc_getData = function () {
 		return this.data;
+	};
+	asc_CExternalReference.prototype.asc_getLink = function () {
+		let res = null;
+		//if link on portal(example - importRange function)
+		if (this.externalReference && this.externalReference.isExternalLink()) {
+			res = this.externalReference && this.externalReference.Id;
+		}
+		return res;
 	};
 	asc_CExternalReference.prototype.asc_getSource = function () {
 		let id = this.externalReference && this.externalReference.Id;
@@ -17036,6 +17075,8 @@ function RangeDataManagerElem(bbox, data)
 
 		this.prefixName = "";
 		this.activeLocale = null;
+
+		this.needRecalculate = null;
 	}
 	CCustomFunctionEngine.prototype.add = function (func, options) {
 		//options ->
@@ -17061,6 +17102,7 @@ function RangeDataManagerElem(bbox, data)
 		*/
 
 		this._add(func, options);
+		this.needRecalculate = true;
 	};
 
 	CCustomFunctionEngine.prototype._add = function (func, options) {
@@ -17079,6 +17121,10 @@ function RangeDataManagerElem(bbox, data)
 		let oFormulaList = AscCommonExcel.cFormulaFunction;
 		if (!this.funcsMapInfo[funcName] && oFormulaList[funcName]) {
 			console.log("REGISTRAION_ERROR_CONFLICTED_FUNCTION_NAME");
+		}
+
+		if (this.funcsMapInfo[funcName]) {
+			this.remove(funcName);
 		}
 
 		let params = options && options.params;
@@ -17175,6 +17221,58 @@ function RangeDataManagerElem(bbox, data)
 		this.addToFunctionsList(newFunc, options);
 	};
 
+	CCustomFunctionEngine.prototype.remove = function (sName) {
+		sName = sName.toUpperCase();
+
+		let isFound = false;
+		if (AscCommonExcel.cFormulaFunctionGroup["Custom"]) {
+			let aCustomFunc = AscCommonExcel.cFormulaFunctionGroup["Custom"];
+			for (let i in aCustomFunc) {
+				if (aCustomFunc[i] && aCustomFunc[i].prototype && aCustomFunc[i].prototype.name === sName) {
+					aCustomFunc.splice(i - 0, 1);
+					isFound = true;
+					break;
+				}
+			}
+		}
+
+		if (isFound) {
+			AscCommonExcel.removeCustomFunction(sName);
+			this.wb.initFormulasList && this.wb.initFormulasList();
+			if (this.wb && this.wb.Api) {
+				this.wb.Api.formulasList = AscCommonExcel.getFormulasInfo();
+			}
+			this.removeInfo(sName);
+
+			this.wb.handlers && this.wb.handlers.trigger("asc_onRemoveCustomFunction");
+			return true;
+		}
+		return false;
+	};
+
+	CCustomFunctionEngine.prototype.clear = function () {
+		if (AscCommonExcel.cFormulaFunctionGroup["Custom"] && AscCommonExcel.cFormulaFunctionGroup["Custom"].length) {
+			let aCustomFunc = AscCommonExcel.cFormulaFunctionGroup["Custom"];
+			for (let i = 0; i < aCustomFunc.length; i++) {
+				let sName = aCustomFunc[i].prototype.name;
+				AscCommonExcel.removeCustomFunction(sName);
+			}
+			AscCommonExcel.cFormulaFunctionGroup["Custom"] = [];
+
+			this.wb.initFormulasList && this.wb.initFormulasList();
+			if (this.wb && this.wb.Api) {
+				this.wb.Api.formulasList = AscCommonExcel.getFormulasInfo();
+			}
+			this.clearInfo();
+
+			this.wb.handlers && this.wb.handlers.trigger("asc_onRemoveCustomFunction");
+
+			return true;
+		}
+
+		return false;
+	};
+
 	CCustomFunctionEngine.prototype.setActiveLocale = function (sLocale) {
 		this.activeLocale = sLocale;
 	};
@@ -17221,6 +17319,7 @@ function RangeDataManagerElem(bbox, data)
 
 		let translations = params.nameLocale;
 		let description = params.description;
+		let args = params.params;
 
 		let funcName = newFunc.prototype.name;
 
@@ -17229,6 +17328,16 @@ function RangeDataManagerElem(bbox, data)
 		if (this.funcsMapInfo[funcName]) {
 			//reload translations
 			this.pushTranslations(funcName, translations);
+			//reload description
+			this.funcsMapInfo[funcName].description = description;
+
+			//reload args info
+			this.funcsMapInfo[funcName].args = [];
+			if (args) {
+				for (let i = 0; i < args.length; i++) {
+					this.funcsMapInfo[funcName].args.push(new CCustomFunctionArgInfo(args[i].name, args[i].isOptional));
+				}
+			}
 
 			let customFunctionList = AscCommonExcel.cFormulaFunctionGroup["Custom"];
 			for (let i in customFunctionList) {
@@ -17241,6 +17350,15 @@ function RangeDataManagerElem(bbox, data)
 			this.funcsMapInfo[funcName] = new CCustomFunctionInfo(funcName);
 			this.pushTranslations(funcName, translations);
 			this.funcsMapInfo[funcName].description = description;
+
+			if (args) {
+				for (let i = 0; i < args.length; i++) {
+					if (!this.funcsMapInfo[funcName].args) {
+						this.funcsMapInfo[funcName].args = [];
+					}
+					this.funcsMapInfo[funcName].args.push(new CCustomFunctionArgInfo(args[i].name, args[i].isOptional));
+				}
+			}
 			isNewFunc = true;
 		}
 
@@ -17602,15 +17720,103 @@ function RangeDataManagerElem(bbox, data)
 		return false;
 	};
 
+	CCustomFunctionEngine.prototype.removeInfo = function (sName) {
+		if (this.funcsMapInfo[sName]) {
+			delete this.funcsMapInfo[sName];
+		}
+		this.removeLocalizationInfo(sName);
+	};
+
+	CCustomFunctionEngine.prototype.removeLocalizationInfo = function (sName) {
+		for (let i in this.localiztionMap) {
+			if (this.localiztionMap.hasOwnProperty(i)) {
+				if (this.localiztionMap[i].fullNameToLocalName && this.localiztionMap[i].fullNameToLocalName[sName]) {
+					delete this.localiztionMap[i].fullNameToLocalName[sName];
+				}
+
+				if (this.localiztionMap[i].localNameToFullName) {
+					for (let j in this.localiztionMap[i].localNameToFullName) {
+						if (this.localiztionMap[i].localNameToFullName.hasOwnProperty(j)) {
+							if (this.localiztionMap[i].localNameToFullName[j] === sName) {
+								delete this.localiztionMap[i].localNameToFullName[j];
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+	};
+
+	CCustomFunctionEngine.prototype.clearInfo = function () {
+		this.funcsMapInfo = {};
+		this.localiztionMap = {};
+	};
 
 	function CCustomFunctionInfo(name) {
 		this.name = name;
 		this.description = null;
 
+		this.args = null;
+
 		this.addLocalization = null;
 	}
 	CCustomFunctionInfo.prototype.asc_getDescription = function () {
 		return this.description;
+	};
+	CCustomFunctionInfo.prototype.asc_getArg = function (num) {
+		if (num == null) {
+			return this.args;
+		}
+		if (this.args && this.args[num]) {
+			return this.args[num];
+		}
+		return null;
+	};
+
+	function CCustomFunctionArgInfo(sName, bOptional) {
+		this.sName = sName;
+		this.bOptional = bOptional;
+	}
+	CCustomFunctionArgInfo.prototype.asc_getName = function () {
+		return this.sName;
+	};
+	CCustomFunctionArgInfo.prototype.asc_getIsOptional = function () {
+		return this.bOptional;
+	};
+
+	function CWorkbookInfo(name, id) {
+		this.name = name;
+		this.id = id;
+
+		this.sheets = null;
+	}
+	CWorkbookInfo.prototype.addSheet = function (name, index) {
+		if (!this.sheets) {
+			this.sheets = [];
+		}
+		let newObj = new CWorksheetInfo(name, index);
+		this.sheets.push(newObj);
+	};
+	CWorkbookInfo.prototype.asc_getName = function () {
+		return this.name;
+	};
+	CWorkbookInfo.prototype.asc_getId = function () {
+		return this.id;
+	};
+	CWorkbookInfo.prototype.asc_getSheets = function () {
+		return this.sheets;
+	};
+
+	function CWorksheetInfo(name, index) {
+		this.name = name;
+		this.index = index;
+	}
+	CWorksheetInfo.prototype.asc_getName = function () {
+		return this.name;
+	};
+	CWorksheetInfo.prototype.asc_getIndex = function () {
+		return this.index;
 	};
 
 	//----------------------------------------------------------export----------------------------------------------------
@@ -17990,6 +18196,7 @@ function RangeDataManagerElem(bbox, data)
 	prot["asc_getId"] = prot.asc_getId;
 	prot["asc_isExternalLink"] = prot.isExternalLink;
 	prot["asc_getPath"] = prot.asc_getPath;
+	prot["asc_getLink"] = prot.asc_getLink;
 
 
 
@@ -18132,6 +18339,25 @@ function RangeDataManagerElem(bbox, data)
 	window["AscCommonExcel"].CCustomFunctionInfo = CCustomFunctionInfo;
 	prot = CCustomFunctionInfo.prototype;
 	prot["asc_getDescription"] = prot.asc_getDescription;
+	prot["asc_getArg"] = prot.asc_getArg;
+
+	window["AscCommonExcel"].CCustomFunctionArgInfo = CCustomFunctionArgInfo;
+	prot = CCustomFunctionArgInfo.prototype;
+	prot["asc_getName"] = prot.asc_getName;
+	prot["asc_getIsOptional"] = prot.asc_getIsOptional;
+
+
+	window["AscCommonExcel"].CWorkbookInfo = CWorkbookInfo;
+	prot = CWorkbookInfo.prototype;
+	prot["asc_getName"] = prot.asc_getName;
+	prot["asc_getId"] = prot.asc_getId;
+	prot["asc_getSheets"] = prot.asc_getSheets;
+
+	window["AscCommonExcel"].CWorksheetInfo = CWorksheetInfo;
+	prot = CWorksheetInfo.prototype;
+	prot["asc_getName"] = prot.asc_getName;
+	prot["asc_getIndex"] = prot.asc_getIndex;
+
 
 
 })(window);

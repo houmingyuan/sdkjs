@@ -726,8 +726,14 @@
 	}
 
 	function isPdfFormatFile(stream) {
-		let part = AscCommon.UTF8ArrayToString(stream, 0, 4096);//MIN_SIZE_BUFFER
-		return -1 !== part.indexOf("%PDF-");
+		//x2t MIN_SIZE_BUFFER = 4096
+		for (let i = 0; i < 4096 && i < stream.length; ++i) {
+			//match "%PDF-"
+			if (0x25 === stream[i] && 0x50 === stream[i + 1] && 0x44 === stream[i + 2] && 0x46 === stream[i + 3] && 0x2D === stream[i + 4]) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	function isDjvuFormatFile(stream) {
@@ -2873,42 +2879,52 @@
 
 		//'path/[name]Sheet1'!A1
 		var path, name, startLink, i;
-		url = url && url.split(FormulaSeparators.functionArgumentSeparator)[0];
-		if (url && url[0] === "'"/*url.match(/('[^\[]*\[[^\]]+\]([^'])+'!)/g)*/) {
-			for (i = url.length - 1; i >= 0; i--) {
-				if (url[i] === "!" && url[i - 1] === "'") {
-					startLink = true;
-					i--;
-					continue;
+		if (url && url.indexOf("[") !== -1) {
+			//todo check on other separators, exm -> SUM(A2 '[new.xlsx]Sheet1'!A1 '[new.xlsx]Sheet1'!A2)
+			for (let j = 0; j < url.length; j++) {
+				if (url[j] === FormulaSeparators.functionArgumentSeparator || url[j] === FormulaSeparators.functionArgumentSeparatorDef || url[j] === ";")  {
+					url = url.substring(0, j);
+					break;
 				}
-				if (startLink) {
-					if (name) {
-						if (url[i] === "[" && (url[i - 1] === "/" || url[i - 1] === "/\/" ||  url[i - 1] === "\\" || (url[i - 1] === "'") && i === 1)) {
-							break;
+			}
+
+
+			if (url && url[0] === "'"/*url.match(/('[^\[]*\[[^\]]+\]([^'])+'!)/g)*/) {
+				for (i = url.length - 1; i >= 0; i--) {
+					if (url[i] === "!" && url[i - 1] === "'") {
+						startLink = true;
+						i--;
+						continue;
+					}
+					if (startLink) {
+						if (name) {
+							if (url[i] === "[" && (url[i - 1] === "/" || url[i - 1] === "/\/" ||  url[i - 1] === "\\" || (url[i - 1] === "'") && i === 1)) {
+								break;
+							} else {
+								name.end--;
+							}
 						} else {
-							name.end--;
-						}
-					} else {
-						if("]" === url[i]) {
-							name = {start: i, end: i};
+							if("]" === url[i]) {
+								name = {start: i, end: i};
+							}
 						}
 					}
 				}
-			}
-			if (name) {
-				var fullname = url.substring(0, name.start + 1);
-				path = url.substring(1, name.end - 1);
-				name = url.substring(name.end, name.start);
-				return {name: name, path: path, fullname: fullname};
-			}
-		} else if (url && url[0] === "[") { // [name]Sheet1!A1
-			for (i = 1; i < url.length; i++) {
-				if (url[i] === "]") {
-					return {name: url.substring(1, i), path: "", fullname:  url.substring(0, i + 1)};
+				if (name) {
+					var fullname = url.substring(0, name.start + 1);
+					path = url.substring(1, name.end - 1);
+					name = url.substring(name.end, name.start);
+					return {name: name, path: path, fullname: fullname};
 				}
-			}
-		} else if (true) { //https://s3.amazonaws.com/nct-files/xlsx/[ExternalLinksDestination.xlsx]Sheet1!A1:A2
+			} else if (url && url[0] === "[") { // [name]Sheet1!A1
+				for (i = 1; i < url.length; i++) {
+					if (url[i] === "]") {
+						return {name: url.substring(1, i), path: "", fullname:  url.substring(0, i + 1)};
+					}
+				}
+			} else if (true) { //https://s3.amazonaws.com/nct-files/xlsx/[ExternalLinksDestination.xlsx]Sheet1!A1:A2
 
+			}
 		}
 
 		return null;
@@ -9972,8 +9988,8 @@
 	}
 
 	var g_oUserColorById = {}, g_oUserNextColorIndex = 0;
-
-	function getUserColorById(userId, userName, isDark, isNumericValue)
+	
+	function _getUserColorById(userId, userName, isDark, isNumericValue)
 	{
 		if ((!userId || "" === userId) && (!userName || "" === userName))
 			return new CColor(0, 0, 0, 255);
@@ -9998,8 +10014,12 @@
 		if (!res)
 			return new CColor(0, 0, 0, 255);
 
-		var oColor = true === isDark ? res.Dark : res.Light;
-		return true === isNumericValue ? ((oColor.r << 16) & 0xFF0000) | ((oColor.g << 8) & 0xFF00) | (oColor.b & 0xFF) : oColor;
+		return true === isDark ? res.Dark : res.Light;
+	}
+	function getUserColorById(userId, userName, isDark, isNumericValue)
+	{
+		let color = _getUserColorById(userId, userName, isDark);
+		return true === isNumericValue ? ((color.r << 16) & 0xFF0000) | ((color.g << 8) & 0xFF00) | (color.b & 0xFF) : color;
 	}
 
 	function isNullOrEmptyString(str)
@@ -10473,7 +10493,7 @@
 		for(var i = 0; i <  AscCommon.g_oUserColorScheme.length; ++i)
 		{
 			var tmp = AscCommon.g_oUserColorScheme[i];
-			if(tmp && tmp.name === sName)
+			if(tmp && tmp.get_name() === sName)
 			{
 				return getColorSchemeByIdx(i);
 			}
@@ -13945,6 +13965,7 @@
 	window["AscCommon"].g_oDocumentUrls = g_oDocumentUrls;
 	window["AscCommon"].FormulaTablePartInfo = FormulaTablePartInfo;
 	window["AscCommon"].cBoolLocal = cBoolLocal;
+	window["AscCommon"].cBoolOrigin = cBoolOrigin;
 	window["AscCommon"].cErrorOrigin = cErrorOrigin;
 	window["AscCommon"].cErrorLocal = cErrorLocal;
 	window["AscCommon"].cCellFunctionLocal = cCellFunctionLocal;
