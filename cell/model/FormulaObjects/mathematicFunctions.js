@@ -4828,7 +4828,7 @@ function (window, undefined) {
 	//TODO все оставшиеся аргументы приходят на вход функции как массивы
 	cSUBTOTAL.prototype.arrayIndexes = {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1};
 	cSUBTOTAL.prototype.Calculate = function (arg) {
-		var f, exclude = false, arg0 = arg[0];
+		let f, exclude = false, arg0 = arg[0], arg1 = arg[1];
 
 		if (cElementType.cellsRange === arg0.type || cElementType.cellsRange3D === arg0.type) {
 			arg0 = arg0.cross(arguments[1]);
@@ -4897,7 +4897,13 @@ function (window, undefined) {
 				f = AscCommonExcel.cVARP.prototype;
 				break;
 		}
-		var res;
+		let res, resArr;
+
+		let arg1Dimensions = arg1.getDimensions();
+		if (arg1.type === cElementType.array) {
+			resArr = new cArray();
+		}
+
 		if (f) {
 			//вложенные итоги игнорируются, чтобы избежать двойного суммирования
 			var oldExcludeHiddenRows = f.excludeHiddenRows;
@@ -4907,7 +4913,18 @@ function (window, undefined) {
 			f.excludeHiddenRows = exclude;
 			f.excludeNestedStAg = true;
 			f.checkExclude = true;
-			res = f.Calculate(arg.slice(1));
+			if (resArr) {
+				// fill resArr with the result of f.calculate for each element
+				for (let r = 0; r < arg1Dimensions.row; r++) {
+					resArr.addRow();
+					for (let c = 0; c < arg1Dimensions.col; c++) {
+						let newElem = f.Calculate([arg1.getElementRowCol(r, c)]);
+						resArr.addElement(newElem);
+					}
+				}
+
+			}
+			res = resArr ? resArr : f.Calculate(arg.slice(1));
 			f.excludeHiddenRows = oldExcludeHiddenRows;
 			f.excludeNestedStAg = oldIgnoreNestedStAg;
 			f.checkExclude = oldCheckExclude;
