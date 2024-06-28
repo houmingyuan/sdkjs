@@ -1202,10 +1202,29 @@
 	WorksheetView.prototype._getColLeft = function (i) {
 		this._updateColumnPositions();
 
-		var l = this.cols.length;
-		return this.cellsLeft + ((i < l) ? this.cols[i].left : (((0 === l) ? 0 :
-			this.cols[l - 1].left + this.cols[l - 1].width) + (!this.model.isDefaultWidthHidden()) *
-			Asc.round(this.defaultColWidthPx * this.getZoom(true) * this.getRetinaPixelRatio()) * (i - l)));
+		var ctx = this.drawingCtx;
+
+		let l = this.cols.length;
+		let leftPosCol;
+		if (i < l) {
+			leftPosCol = this.cols[i].left;
+		} else {
+			if (window.rightToleft) {
+				leftPosCol = ((0 === l) ? ctx.getWidth() : this.cols[l - 1].left + this.cols[l - 1].width);
+			} else {
+				leftPosCol = ((0 === l) ? 0 : this.cols[l - 1].left + this.cols[l - 1].width);
+			}
+
+			if (!this.model.isDefaultWidthHidden()) {
+				let ratio = this.getZoom(true) * this.getRetinaPixelRatio();
+				if (window.rightToleft) {
+					leftPosCol -= Asc.round(this.defaultColWidthPx * ratio) * (i - l);
+				} else {
+					leftPosCol += Asc.round(this.defaultColWidthPx * ratio) * (i - l);
+				}
+			}
+		}
+		return this.cellsLeft + leftPosCol;
 	};
     WorksheetView.prototype.getCellLeft = function (column, units) {
 		var u = units >= 0 && units <= 3 ? units : 0;
