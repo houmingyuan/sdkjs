@@ -1203,7 +1203,7 @@
 		this._updateColumnPositions();
 
 		var ctx = this.drawingCtx;
-
+		window.rightToleft = false;
 		let l = this.cols.length;
 		let leftPosCol;
 		if (i < l) {
@@ -1224,6 +1224,7 @@
 				}
 			}
 		}
+		window.rightToleft = true;
 		return this.cellsLeft + leftPosCol;
 	};
     WorksheetView.prototype.getCellLeft = function (column, units) {
@@ -7235,8 +7236,8 @@
             fHorLine = ctx.dashLineCleverHor;
             fVerLine = ctx.dashLineCleverVer;
         } else {
-            fHorLine = ctx.lineHorPrevPx;
-            fVerLine = ctx.lineVerPrevPx;
+            fHorLine = this._lineHorPrevPx;
+            fVerLine = this._lineVerPrevPx;
         }
 
         let firstCol = oIntersection.c1 === visibleRange.c1 && !isAllRange;
@@ -7270,7 +7271,8 @@
         if (canFill) {
             let fillColor = strokeColor.Copy();
             fillColor.a = 0.15;
-            ctx.setFillStyle(fillColor).fillRect(x1, y1, x2 - x1, y2 - y1);
+            ctx.setFillStyle(fillColor);
+            this._fillRect(ctx, x1, y1, x2 - x1, y2 - y1);
         }
 
 
@@ -7300,16 +7302,16 @@
 
             ctx.beginPath();
             if (drawTopSide && !firstRow) {
-                fHorLine.apply(ctx, [x1 - !isDashLine * (2 + isRetina * 1) + _diff, y1, x2 + !isDashLine * (1 + isRetina * 1) - _diff]);
+                fHorLine.apply(ctx, [ctx, x1 - !isDashLine * (2 + isRetina * 1) + _diff, y1, x2 + !isDashLine * (1 + isRetina * 1) - _diff]);
             }
             if (drawBottomSide) {
-                fHorLine.apply(ctx, [x1, y2 + !isDashLine * 1 - thinLineDiff, x2]);
+                fHorLine.apply(ctx, [ctx, x1, y2 + !isDashLine * 1 - thinLineDiff, x2]);
             }
             if (drawLeftSide && !firstCol) {
-                fVerLine.apply(ctx, [x1, y1, y2 + !isDashLine * (1 + isRetina * 1) - _diff]);
+                fVerLine.apply(ctx, [ctx, x1, y1, y2 + !isDashLine * (1 + isRetina * 1) - _diff]);
             }
             if (drawRightSide) {
-                fVerLine.apply(ctx, [x2 + !isDashLine * 1 - thinLineDiff, y1, y2 + !isDashLine * (1 + isRetina * 1)]);
+                fVerLine.apply(ctx, [ctx, x2 + !isDashLine * 1 - thinLineDiff, y1, y2 + !isDashLine * (1 + isRetina * 1)]);
             }
             ctx.closePath().stroke();
 		}
@@ -7328,7 +7330,7 @@
 				let _w = this._getColLeft(fs.c2 + 1) - left - 2 - isRetina * 1;
 				let _h = this._getRowTop(fs.r2 + 1) - top - 2  - isRetina * 1;
 				if (0 < _w && 0 < _h) {
-					ctx.clearRect(_x1, _y1, _w, _h);
+					this._clearRect(ctx, _x1, _y1, _w, _h);
 				}
 			}
 		}
@@ -7338,16 +7340,16 @@
             ctx.setStrokeStyle(colorN);
             ctx.beginPath();
             if (drawTopSide) {
-                fHorLine.apply(ctx, [x1 + isRetina * 1, y1 + 1 + isRetina * !firstRow * 1, x2 - 1 - isRetina * 1]);
+                fHorLine.apply(ctx, [ctx, x1 + isRetina * 1, y1 + 1 + isRetina * !firstRow * 1, x2 - 1 - isRetina * 1]);
             }
             if (drawBottomSide) {
-                fHorLine.apply(ctx, [x1 + isRetina * 1, y2 - 1 - isRetina * 1, x2 - 1 - isRetina * 1]);
+                fHorLine.apply(ctx, [ctx, x1 + isRetina * 1, y2 - 1 - isRetina * 1, x2 - 1 - isRetina * 1]);
             }
             if (drawLeftSide) {
-                fVerLine.apply(ctx, [x1 + 1 + isRetina * !firstCol * 1, y1 + isRetina * 1, y2 - 2 - isRetina * !firstCol * 1]);
+                fVerLine.apply(ctx, [ctx, x1 + 1 + isRetina * !firstCol * 1, y1 + isRetina * 1, y2 - 2 - isRetina * !firstCol * 1]);
             }
             if (drawRightSide) {
-                fVerLine.apply(ctx, [x2 - 1 - isRetina * 1, y1 + isRetina * 1, y2 - 2 - isRetina * 1]);
+                fVerLine.apply(ctx, [ctx, x2 - 1 - isRetina * 1, y1 + isRetina * 1, y2 - 2 - isRetina * 1]);
             }
             ctx.closePath().stroke();
         }
@@ -7365,33 +7367,33 @@
 
 			ctx.setFillStyle(colorN);
             if (drawRightSide && drawBottomSide) {
-                ctx.fillRect(x2 - diffBorder, y2 - diffBorder, sizeBorder, sizeBorder);
+                this._fillRect(ctx, x2 - diffBorder, y2 - diffBorder, sizeBorder, sizeBorder);
             }
             ctx.setFillStyle(strokeColor);
             if (drawRightSide && drawBottomSide) {
-                ctx.fillRect(x2 - diff, y2 - diff, size, size);
+				this._fillRect(ctx, x2 - diff, y2 - diff, size, size);
             }
 
             if (isResize) {
                 ctx.setFillStyle(colorN);
                 if (drawLeftSide && drawTopSide) {
-                    ctx.fillRect(x1 - diffBorder, y1 - diffBorder, sizeBorder, sizeBorder);
+					this._fillRect(ctx, x1 - diffBorder, y1 - diffBorder, sizeBorder, sizeBorder);
                 }
                 if (drawRightSide && drawTopSide) {
-                    ctx.fillRect(x2 - diffBorder, y1 - diffBorder, sizeBorder, sizeBorder);
+					this._fillRect(ctx, x2 - diffBorder, y1 - diffBorder, sizeBorder, sizeBorder);
                 }
                 if (drawLeftSide && drawBottomSide) {
-                    ctx.fillRect(x1 - diffBorder, y2 - diffBorder, sizeBorder, sizeBorder);
+					this._fillRect(ctx, x1 - diffBorder, y2 - diffBorder, sizeBorder, sizeBorder);
                 }
                 ctx.setFillStyle(strokeColor);
                 if (drawLeftSide && drawTopSide) {
-                    ctx.fillRect(x1 - diff, y1 - diff, size, size);
+					this._fillRect(ctx, x1 - diff, y1 - diff, size, size);
                 }
                 if (drawRightSide && drawTopSide) {
-                    ctx.fillRect(x2 - diff, y1 - diff, size, size);
+					this._fillRect(ctx, x2 - diff, y1 - diff, size, size);
                 }
                 if (drawLeftSide && drawBottomSide) {
-                    ctx.fillRect(x1 - diff, y2 - diff, size, size);
+					this._fillRect(ctx, x1 - diff, y2 - diff, size, size);
                 }
             }
         }
@@ -9999,26 +10001,50 @@
 					widthDiff = 0;
 				}
 			}
-			for (x1 = this.cellsLeft + widthDiff, c2 = this.nColsCount - 1; c <= c2; ++c, x1 = x2) {
-				w = this._getColumnWidth(c);
-				x2 = x1 + w;
-				dx = half ? w / 2.0 * Math.sign(c - activeCellCol) : 0;
-				if (x1 + dx > x) {
-					if (c !== this.visibleRange.c1) {
-						if (dx) {
-							c -= 1;
-							x2 = x1;
-							x1 -= w;
+			if (window.rightToleft) {
+				for (x1 = this.drawingCtx.getWidth() - (this.cellsLeft + widthDiff), c2 = this.nColsCount - 1; c <= c2; ++c, x1 = x2) {
+					w = this._getColumnWidth(c);
+					x2 = x1 - w;
+					dx = half ? w / 2.0 * Math.sign(c - activeCellCol) : 0;
+					if (x1 + dx < x) {
+						if (c !== this.visibleRange.c1) {
+							if (dx) {
+								c -= 1;
+								x2 = x1;
+								x1 -= w;
+							}
+							return {col: c, left: x1, right: x2};
+						} else {
+							c = c2;
+							break;
 						}
+					} else if (x >= x2 + dx) {
 						return {col: c, left: x1, right: x2};
-					} else {
-						c = c2;
-						break;
 					}
-				} else if (x <= x2 + dx) {
-					return {col: c, left: x1, right: x2};
+				}
+			} else {
+				for (x1 = this.cellsLeft + widthDiff, c2 = this.nColsCount - 1; c <= c2; ++c, x1 = x2) {
+					w = this._getColumnWidth(c);
+					x2 = x1 + w;
+					dx = half ? w / 2.0 * Math.sign(c - activeCellCol) : 0;
+					if (x1 + dx > x) {
+						if (c !== this.visibleRange.c1) {
+							if (dx) {
+								c -= 1;
+								x2 = x1;
+								x1 -= w;
+							}
+							return {col: c, left: x1, right: x2};
+						} else {
+							c = c2;
+							break;
+						}
+					} else if (x <= x2 + dx) {
+						return {col: c, left: x1, right: x2};
+					}
 				}
 			}
+
 			if (!canReturnNull) {
 				x1 = this._getColLeft(c2) - offset;
 				return {col: c2, left: x1, right: x1 + this._getColumnWidth(c2)};
