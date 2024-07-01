@@ -8100,12 +8100,11 @@
                 y1 -= nRad;
                 y2 += nRad;
             }
-            ctx.save()
-              .beginPath()
-              .rect(this.cellsLeft, this.cellsTop, ctx.getWidth() - this.cellsLeft, ctx.getHeight() - this.cellsTop)
-              .clip()
-              .clearRect(x1, y1, x2 - x1, y2 - y1)
-              .restore();
+            ctx.save().beginPath();
+            this._rect(ctx, this.cellsLeft, this.cellsTop, ctx.getWidth() - this.cellsLeft, ctx.getHeight() - this.cellsTop);
+			ctx.clip();
+			this._clearRect(ctx, x1, y1, x2 - x1, y2 - y1);
+			ctx.restore();
         }
         return this;
     };
