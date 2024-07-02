@@ -1199,18 +1199,21 @@
         };
     };
 
-	WorksheetView.prototype._getColLeft = function (i) {
+	WorksheetView.prototype._getColLeft = function (i, saveRealRightToleft) {
 		this._updateColumnPositions();
 
 		var ctx = this.drawingCtx;
-		window.rightToleft = false;
+		let realRightToleft = window.rightToleft
+		if (!saveRealRightToleft) {
+			window.rightToleft = false;
+		}
 		let l = this.cols.length;
 		let leftPosCol;
 		if (i < l) {
 			leftPosCol = this.cols[i].left;
 		} else {
 			if (window.rightToleft) {
-				leftPosCol = ((0 === l) ? ctx.getWidth() : this.cols[l - 1].left + this.cols[l - 1].width);
+				leftPosCol = ((0 === l) ? ctx.getWidth() : this.cols[l - 1].left);
 			} else {
 				leftPosCol = ((0 === l) ? 0 : this.cols[l - 1].left + this.cols[l - 1].width);
 			}
@@ -1218,14 +1221,15 @@
 			if (!this.model.isDefaultWidthHidden()) {
 				let ratio = this.getZoom(true) * this.getRetinaPixelRatio();
 				if (window.rightToleft) {
-					leftPosCol -= Asc.round(this.defaultColWidthPx * ratio) * (i - l);
+					leftPosCol -= Asc.round(this.defaultColWidthPx * ratio) * (i - l + 1);
 				} else {
 					leftPosCol += Asc.round(this.defaultColWidthPx * ratio) * (i - l);
 				}
 			}
 		}
-		window.rightToleft = true;
-		return this.cellsLeft + leftPosCol;
+		let res = window.rightToleft ? leftPosCol - this.cellsLeft : this.cellsLeft + leftPosCol;
+		window.rightToleft = realRightToleft;
+		return res;
 	};
     WorksheetView.prototype.getCellLeft = function (column, units) {
 		var u = units >= 0 && units <= 3 ? units : 0;
@@ -4701,6 +4705,14 @@
 		ctx.rect(window.rightToleft ? (ctx.getWidth() - x - w) : x, y, w, h);
 		return ctx;
 	};
+	WorksheetView.prototype._clearRectByY = function (ctx, x, y, w, h) {
+		ctx.clearRectByY(window.rightToleft ? (ctx.getWidth() - x - w) : x, y, w, h);
+		return ctx;
+	};
+	WorksheetView.prototype._clearRectByX = function (ctx, x, y, w, h) {
+		ctx.clearRectByX(window.rightToleft ? (ctx.getWidth() - x - w) : x, y, w, h);
+		return ctx;
+	};
 
 
 	
@@ -4981,7 +4993,7 @@
         for (i = colStartTmp; i <= colEndTmp; ++i) {
         	w = this._getColumnWidth(i);
         	if (0 !== w) {
-				this.drawingCtx.clearRectByX(l + correctX, this.headersTop + correctY, w + correctW, this.headersHeight + correctH);
+				this._clearRectByX(this.drawingCtx, l + correctX, this.headersTop + correctY, w + correctW, this.headersHeight + correctH);
 				l += w;
 			}
         }
@@ -4994,7 +5006,7 @@
             for (i = colStart; i <= colEnd; ++i) {
 				w = this._getColumnWidth(i);
 				if (0 !== w) {
-					this.drawingCtx.clearRectByX(l + correctX, this.headersTop + correctY, w + correctW, this.headersHeight + correctH);
+					this._clearRectByX(this.drawingCtx, l + correctX, this.headersTop + correctY, w + correctW, this.headersHeight + correctH);
 					l += w;
 				}
             }
@@ -5029,7 +5041,7 @@
         for (i = rowStartTmp; i <= rowEndTmp; ++i) {
 			h = this._getRowHeight(i);
             if (0 !== h) {
-				this.drawingCtx.clearRectByY(this.headersLeft + correctX, t + correctY, this.headersWidth + correctW, h + correctH);
+				this._clearRectByY(this.drawingCtx, this.headersLeft + correctX, t + correctY, this.headersWidth + correctW, h + correctH);
 				t += h;
             }
         }
@@ -5042,7 +5054,7 @@
             for (i = rowStart; i <= rowEnd; ++i) {
 				h = this._getRowHeight(i);
                 if (0 !== h) {
-					this.drawingCtx.clearRectByY(this.headersLeft + correctX, t + correctY, this.headersWidth + correctW, h + correctH);
+					this._clearRectByY(this.drawingCtx, this.headersLeft + correctX, t + correctY, this.headersWidth + correctW, h + correctH);
 					t += h;
                 }
             }
@@ -17467,9 +17479,9 @@
 				}
 				var vro = getVisibleRangeObject();
 				var i, w, h, arrLeftS = [], arrRightS = [], arrBottomS = [];
-				var offsX = t._getColLeft(vro.vr.c1) - t._getColLeft(0) - vro.offsetX;
+				var offsX = t._getColLeft(vro.vr.c1, true) - t._getColLeft(0, true) - vro.offsetX;
 				var offsY = t._getRowTop(vro.vr.r1) - t._getRowTop(0) - vro.offsetY;
-				var cellX = t._getColLeft(_c1) - offsX, cellY = t._getRowTop(_r1) - offsY;
+				var cellX = t._getColLeft(_c1, true) - offsX, cellY = t._getRowTop(_r1) - offsY;
 				var _left = cellX;
 				for (i = _c1; i >= vro.vr.c1; --i) {
 					w = t._getColumnWidth(i);
