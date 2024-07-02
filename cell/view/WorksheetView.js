@@ -4713,6 +4713,11 @@
 		ctx.clearRectByX(window.rightToleft ? (ctx.getWidth() - x - w) : x, y, w, h);
 		return ctx;
 	};
+	WorksheetView.prototype._drawText = function (stringRender, ctx, textX, textY, textW, color) {
+		stringRender.render(ctx, window.rightToleft ? (ctx.getWidth() - textX - textW) : textX, textY, textW, color);
+		return stringRender;
+	};
+
 
 
 	
@@ -5819,7 +5824,8 @@
 					}
 				}
 			}
-			this.stringRender.restoreInternalState(ct.state).render(drawingCtx, textX, textY, textW, color);
+
+			this._drawText(this.stringRender.restoreInternalState(ct.state), ctx, textX, textY, textW, color);
 			ctx.RemoveClipRect();
 		}
 
