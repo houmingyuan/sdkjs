@@ -1504,6 +1504,11 @@
 
 		//Table1[[#Headers],[#Data],[Column1]:[Column2]]
 
+		// @ === [#This Row],
+		// Table[@]
+		// Table[@Column1]
+		// Table[@Column1:[Column2]] === Table[@[Column1]:[Column2]]
+
 		let argsSeparator = FormulaSeparators.functionArgumentSeparator;
 		return XRegExp.build('^(?<tableName>{{tableName}})\\[(?<columnName1>{{columnName}})?\\]', {
 			"tableName":  new XRegExp("^(:?[" + str_namedRanges + "][" + str_namedRanges + "\\d.]*)"),
@@ -1516,7 +1521,13 @@
 				//fixed: added [{{rc}}\\]' + argsSeparator + '\\[{{rc}}\\] for:
 				//Table1[[#Data],[#Totals]]
 				//Table1[[#Headers],[#Data]]
-				"hdtcc":           XRegExp.build('(?<hdt>\\[{{rc}}\\]' + argsSeparator + '\\[{{rc}}\\]|\\[{{rc}}\\]|{{hd}}|{{dt}})(?:\\' + argsSeparator + '(?:\\[(?<hdtcstart>{{uc}})\\])(?:\\:(?:\\[(?<hdtcend>{{uc}})\\]))?)?', {
+
+				// '(?<hdt>\\[{{rc}}\\]' + argsSeparator + '\\[{{rc}}\\]|\\[{{rc}}\\]|{{hd}}|{{dt}})(?:\\' + argsSeparator + '(?:\\[(?<hdtcstart>{{uc}})\\])(?:\\:(?:\\[(?<hdtcend>{{uc}})\\]))?)?'
+				// '(?<hdt>@)'+'(?:(?:\\[(?<hdtcstart>{{uc}})\\])(?:\\:(?:\\[(?<hdtcend>{{uc}})\\]))?)?'
+				//todo need to combine the old parser with the new one so that the "[#This Row]," entry is equal to the "@"" symbol 
+				//todo or do jsut substring replacement before regex.exec
+				"hdtcc":           XRegExp.build('(?<hdt>@)'+'(?:(?:\\[(?<hdtcstart>{{uc}})\\])(?:\\:(?:\\[(?<hdtcend>{{uc}})\\]))?)?'
+					, {
 					"rc": structured_tables_reservedColumn,
 					"hd": structured_tables_headata,
 					"dt": structured_tables_datals,
@@ -3720,8 +3731,8 @@
 			this._reset();
 		}
 
-		var subSTR = formula.substring(start_pos),
-			match  = XRegExp.exec(subSTR, local ? rx_table_local : rx_table);
+		let subSTR = formula.substring(start_pos),
+		match = XRegExp.exec(subSTR, local ? rx_table_local : rx_table);
 
 		if (match != null && match["tableName"])
 		{

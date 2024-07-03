@@ -2336,35 +2336,58 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 			columns_2 = this.colEndIndex.name.replace(/([#[\]])/g, "'$1");
 			tblStr += "[[" + columns_1 + "]:[" + columns_2 + "]]";
 		} else if (null != this.reservedColumnIndex) {
-			tblStr += "[" + this._buildLocalTableString(this.reservedColumnIndex, isLocal) + "]";
+			if (this.isCrossSymbol) {
+				tblStr += "[" + "@" + "]";
+			} else {
+				tblStr += "[" + this._buildLocalTableString(this.reservedColumnIndex, isLocal) + "]";
+			}
 		} else if (this.hdtIndexes || this.hdtcstartIndex || this.hdtcendIndex) {
 			tblStr += '[';
 			var i;
-			for (i = 0; i < this.hdtIndexes.length; ++i) {
-				if (0 != i) {
-					if (isLocal) {
-						tblStr += FormulaSeparators.functionArgumentSeparator;
-					} else {
-						tblStr += FormulaSeparators.functionArgumentSeparatorDef;
+
+			if (this.hdtIndexes.length > 0 && this.isCrossSymbol) {
+				let hdtcstart = this.hdtcstartIndex.name.replace(/([#[\]])/g, "'$1");
+				let hdtcend = this.hdtcendIndex ? this.hdtcendIndex.name.replace(/([#[\]])/g, "'$1") : null;
+				
+				tblStr += "@";
+				if (!hdtcend) {
+					// if one column is selected
+					tblStr += hdtcstart;
+				} else {
+					// if multiple columns are selected
+					tblStr += '[' + hdtcstart + ']';
+					tblStr += ':[' + hdtcend + ']';
+				}
+
+			} else {
+				for (i = 0; i < this.hdtIndexes.length; ++i) {
+					if (0 != i) {
+						if (isLocal) {
+							tblStr += FormulaSeparators.functionArgumentSeparator;
+						} else {
+							tblStr += FormulaSeparators.functionArgumentSeparatorDef;
+						}
+					}
+					tblStr += "[" + this._buildLocalTableString(this.hdtIndexes[i], isLocal) + "]";
+				}
+
+				if (this.hdtcstartIndex) {
+					if (this.hdtIndexes.length > 0) {
+						if (isLocal) {
+							tblStr += FormulaSeparators.functionArgumentSeparator;
+						} else {
+							tblStr += FormulaSeparators.functionArgumentSeparatorDef;
+						}
+					}
+					let hdtcstart = this.hdtcstartIndex.name.replace(/([#[\]])/g, "'$1");
+					tblStr += "[" + hdtcstart + "]";
+					if (this.hdtcendIndex) {
+						let hdtcend = this.hdtcendIndex.name.replace(/([#[\]])/g, "'$1");
+						tblStr += ":[" + hdtcend + "]";
 					}
 				}
-				tblStr += "[" + this._buildLocalTableString(this.hdtIndexes[i], isLocal) + "]";
 			}
-			if (this.hdtcstartIndex) {
-				if (this.hdtIndexes.length > 0) {
-					if (isLocal) {
-						tblStr += FormulaSeparators.functionArgumentSeparator;
-					} else {
-						tblStr += FormulaSeparators.functionArgumentSeparatorDef;
-					}
-				}
-				var hdtcstart = this.hdtcstartIndex.name.replace(/([#[\]])/g, "'$1");
-				tblStr += "[" + hdtcstart + "]";
-				if (this.hdtcendIndex) {
-					var hdtcend = this.hdtcendIndex.name.replace(/([#[\]])/g, "'$1");
-					tblStr += ":[" + hdtcend + "]";
-				}
-			}
+
 			tblStr += ']';
 		} else if (!isLocal) {
 			tblStr += '[]';
@@ -2388,6 +2411,11 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 			this.colEndIndex = this.wb.getTableIndexColumnByName(this.tableName, endCol);
 			bRes = !!this.colStartIndex && !!this.colEndIndex;
 		} else if (val['reservedColumn']) {
+
+			if (val['reservedColumn'] === "@") {
+				this.isCrossSymbol = true;
+			}
+
 			this.reservedColumnIndex = parserHelp.getColumnTypeByName(val['reservedColumn']);
 			if (AscCommon.FormulaTablePartInfo.thisRow == this.reservedColumnIndex ||
 				AscCommon.FormulaTablePartInfo.headers == this.reservedColumnIndex ||
@@ -2396,11 +2424,18 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 			}
 		} else if (val['hdtcc']) {
 			this.hdtIndexes = [];
-			var hdtcstart = val['hdtcstart'];
-			var hdtcend = val['hdtcend'];
-			var re = /\[(.*?)\]/ig, m;
+			let hdtcstart = val['hdtcstart'];
+			let hdtcend = val['hdtcend'];
+			let re = /\[(.*?)\]|\@/ig, m;
+
+			let isCross;
+			if (val['hdt'] === "@") {
+				isCross = true;
+				this.isCrossSymbol = true;
+			}
+
 			while (null !== (m = re.exec(val['hdt']))) {
-				var param = parserHelp.getColumnTypeByName(m[1]);
+				let param = /*isCross ? AscCommon.FormulaTablePartInfo.thisRow :*/ parserHelp.getColumnTypeByName(isCross ? m[0] : m[1]);
 				if (AscCommon.FormulaTablePartInfo.thisRow == param ||
 					AscCommon.FormulaTablePartInfo.headers == param || AscCommon.FormulaTablePartInfo.totals == param) {
 					this.isDynamic = true;

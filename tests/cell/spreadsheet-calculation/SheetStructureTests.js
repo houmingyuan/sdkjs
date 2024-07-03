@@ -2615,10 +2615,10 @@ $(function () {
 		//Table5[@]
 		// activeCell = new AscCommon.CellBase(101, 4);
 		// handleSelectionRange = new Asc.Range(0, 101, 2, 101);
-		// sTableData = table.getSelectionString(activeCell, handleSelectionRange);
-		//
+		// sTableData = table.getSelectionString(activeCell, handleSelectionRange);\
+	
 		// assert.strictEqual(sTableData, tableName + "[@]", "check intersection all row");
-		//
+				
 		// //Table5[@[Column1]:[Column2]]
 		// activeCell = new AscCommon.CellBase(101, 4);
 		// handleSelectionRange = new Asc.Range(0, 101, 1, 101);
