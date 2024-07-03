@@ -1203,14 +1203,14 @@
 		this._updateColumnPositions();
 
 		var ctx = this.drawingCtx;
-		let realRightToleft = window.rightToleft
+		let realRightToleft = window.rightToleft;
 		if (!saveRealRightToleft) {
 			window.rightToleft = false;
 		}
 		let l = this.cols.length;
 		let leftPosCol;
 		if (i < l) {
-			leftPosCol = this.cols[i].left;
+			leftPosCol = window.rightToleft ? (ctx.getWidth() - this.cols[i].left - this.cols[i].width) : this.cols[i].left;
 		} else {
 			if (window.rightToleft) {
 				leftPosCol = ((0 === l) ? ctx.getWidth() : this.cols[l - 1].left);
@@ -3528,7 +3528,7 @@
 			let clipLeftShape, clipTopShape, clipWidthShape, clipHeightShape;
 
 			let doDraw = function(range, titleWidth, titleHeight) {
-				drawingCtx.AddClipRect && this._AddClipRect(drawingCtx, clipLeft, clipTop, clipWidth, clipHeight);
+				drawingCtx.AddClipRect && t._AddClipRect(drawingCtx, clipLeft, clipTop, clipWidth, clipHeight);
 
 				let transformMatrix;
 				let _transform = drawingCtx.Transform;
@@ -9846,7 +9846,11 @@
         // Перемещаем область
         var moveWidth = oldW - lastColWidth;
         if (moveWidth > 0) {
-            ctx.drawImage(ctx.getCanvas(), x, y, moveWidth, ctxH, x - dx, y, moveWidth, ctxH);
+        	if (window.rightToleft) {
+				ctx.drawImage(ctx.getCanvas(), x, y, moveWidth, ctxH, x + dx, y, moveWidth, ctxH);
+			} else {
+				ctx.drawImage(ctx.getCanvas(), x, y, moveWidth, ctxH, x - dx, y, moveWidth, ctxH);
+			}
 
             // Заглушка для safari (http://bugzilla.onlyoffice.com/show_bug.cgi?id=25546). Режим 'copy' сначала затирает, а
             // потом рисует (а т.к. мы рисуем сами на себе, то уже картинка будет пустой)
@@ -9859,8 +9863,8 @@
         // Очищаем область
         var clearLeft = this.cellsLeft + diffWidth + (scrollRight && moveWidth > 0 ? moveWidth : 0);
         var clearWidth = (moveWidth > 0) ? Math.abs(dx) + lastColWidth : ctxW - (this.cellsLeft + diffWidth);
-        ctx.setFillStyle(this.settings.cells.defaultState.background)
-          .fillRect(clearLeft, y, clearWidth, ctxH);
+        ctx.setFillStyle(this.settings.cells.defaultState.background);
+		this._fillRect(ctx, clearLeft, y, clearWidth, ctxH);
         this.drawingGraphicCtx.clearRect(clearLeft, y, clearWidth, ctxH);
 
 		this._updateDrawingArea();

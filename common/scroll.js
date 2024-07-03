@@ -863,6 +863,9 @@ CArrowDrawer.prototype.InitSize = function ( sizeW, sizeH )
 		if ( !this.settings.isHorizontalScroll ) {
 			return;
 		}
+		/*if (window.rightToleft) {
+			delta = -delta;
+		}*/
         var dPR = AscBrowser.retinaPixelRatio;
 		var destX = this.scrollHCurrentX + delta, isTop = false, isBottom = false, hend = false;
 
