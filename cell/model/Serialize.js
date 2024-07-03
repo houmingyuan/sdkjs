@@ -13503,7 +13503,7 @@
         }
         if (curFormula) {
             cell.setFormulaInternal(curFormula.parsed);
-            if (curFormula.parsed.ca || cell.isNullTextString()) {
+            if (curFormula.parsed.ca || cell.isNullTextString() || (tmp.ws.workbook.fileVersion.appName && tmp.ws.workbook.calcPr.calcId)) {
                 tmp.ws.workbook.dependencyFormulas.addToChangedCell(cell);
             }
         }
