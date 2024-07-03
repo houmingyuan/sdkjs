@@ -18363,6 +18363,30 @@ function RangeDataManagerElem(bbox, data)
 		return this.index;
 	};
 
+	function CFileVersion() {
+		this.appName = null;
+		this.codeName = null;
+
+		this.lastEdited = null;
+		this.lowestEdited = null;
+		this.rupBuild = null;
+	}
+	CFileVersion.prototype.clone = function () {
+		let res = new CFileVersion();
+
+		res.appName = this.appName;
+		res.codeName = this.codeName;
+
+		res.lastEdited = this.lastEdited;
+		res.lowestEdited = this.lowestEdited;
+		res.rupBuild = this.rupBuild;
+
+		return res;
+	};
+	CFileVersion.prototype.setAppName = function (val) {
+		this.appName = val;
+	};
+
 	//----------------------------------------------------------export----------------------------------------------------
 	var prot;
 	window['Asc'] = window['Asc'] || {};
@@ -18931,6 +18955,7 @@ function RangeDataManagerElem(bbox, data)
 	prot["asc_getName"] = prot.asc_getName;
 	prot["asc_getIndex"] = prot.asc_getIndex;
 
+	window["AscCommonExcel"].CFileVersion = CFileVersion;
 
 
 })(window);

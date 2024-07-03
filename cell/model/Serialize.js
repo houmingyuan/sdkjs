@@ -265,6 +265,7 @@
         Comments: 14,
         CalcPr: 15,
         Connections: 16,
+		AppName: 17,
         SlicerCaches: 18,
         SlicerCachesExt: 19,
         SlicerCache: 20,
@@ -3653,6 +3654,12 @@
 				this.bs.WriteItem(c_oSerWorkbookTypes.Metadata, function () {oThis.WriteMetadata(oThis.wb.metadata);});
 			}
 
+			if (this.wb.fileVersion) {
+				if (this.wb.fileVersion.appName) {
+					this.bs.WriteItem(c_oSerWorkbookTypes.AppName, function () {oThis.memory.WriteString3(this.wb.fileVersion.appName)});
+				}
+			}
+
         };
         this.WriteWorkbookPr = function()
         {
@@ -3740,9 +3747,9 @@
 			var t = this;
 			//calcId Specifies the version of the calculation engine used to calculate values in the workbook
 			//do not pretend to be other editors
-			// if (null != calcPr.calcId) {
-				// this.bs.WriteItem(c_oSerCalcPrTypes.CalcId, function() {t.memory.WriteLong(calcPr.calcId)});
-			// }
+			if (null != calcPr.calcId) {
+				this.bs.WriteItem(c_oSerCalcPrTypes.CalcId, function() {t.memory.WriteLong(calcPr.calcId)});
+			}
 			if (null != calcPr.calcMode) {
 				this.bs.WriteItem(c_oSerCalcPrTypes.CalcMode, function() {t.memory.WriteByte(calcPr.calcMode)});
 			}
@@ -8804,6 +8811,11 @@
                     return oThis.ReadTimelineCaches(t, l, oThis.oWorkbook.timelineCaches);
                 });
             }
+			else if (c_oSerWorkbookTypes.AppName === type)
+			{
+				this.oWorkbook.fileVersion = new AscCommonExcel.CFileVersion();
+				this.oWorkbook.fileVersion.setAppName(this.stream.GetString2LE(length));
+			}
             /*else if (c_oSerWorkbookTypes.Metadata === type)
             {
                 this.oWorkbook.metadata = new AscCommonExcel.CMetadata();
@@ -9475,31 +9487,31 @@
         };
 		this.ReadCalcPr = function(type, length, oCalcPr) {
 			var res = c_oSerConstants.ReadOk;
-			if (c_oSerCalcPrTypes.CalcId == type) {
+			if (c_oSerCalcPrTypes.CalcId === type) {
 				oCalcPr.calcId = this.stream.GetULongLE();
-			} else if (c_oSerCalcPrTypes.CalcMode == type) {
+			} else if (c_oSerCalcPrTypes.CalcMode === type) {
 				oCalcPr.calcMode = this.stream.GetUChar();
-			} else if (c_oSerCalcPrTypes.FullCalcOnLoad == type) {
+			} else if (c_oSerCalcPrTypes.FullCalcOnLoad === type) {
 				oCalcPr.fullCalcOnLoad = this.stream.GetBool();
-			} else if (c_oSerCalcPrTypes.RefMode == type) {
+			} else if (c_oSerCalcPrTypes.RefMode === type) {
 				oCalcPr.refMode = this.stream.GetUChar();
-			} else if (c_oSerCalcPrTypes.Iterate == type) {
+			} else if (c_oSerCalcPrTypes.Iterate === type) {
 				oCalcPr.iterate = this.stream.GetBool();
-			} else if (c_oSerCalcPrTypes.IterateCount == type) {
+			} else if (c_oSerCalcPrTypes.IterateCount === type) {
 				oCalcPr.iterateCount = this.stream.GetULongLE();
-			} else if (c_oSerCalcPrTypes.IterateDelta == type) {
+			} else if (c_oSerCalcPrTypes.IterateDelta === type) {
 				oCalcPr.iterateDelta = this.stream.GetDoubleLE();
-			} else if (c_oSerCalcPrTypes.FullPrecision == type) {
+			} else if (c_oSerCalcPrTypes.FullPrecision === type) {
 				oCalcPr.fullPrecision = this.stream.GetBool();
-			} else if (c_oSerCalcPrTypes.CalcCompleted == type) {
+			} else if (c_oSerCalcPrTypes.CalcCompleted === type) {
 				oCalcPr.calcCompleted = this.stream.GetBool();
-			} else if (c_oSerCalcPrTypes.CalcOnSave == type) {
+			} else if (c_oSerCalcPrTypes.CalcOnSave === type) {
 				oCalcPr.calcOnSave = this.stream.GetBool();
-			} else if (c_oSerCalcPrTypes.ConcurrentCalc == type) {
+			} else if (c_oSerCalcPrTypes.ConcurrentCalc === type) {
 				oCalcPr.concurrentCalc = this.stream.GetBool();
-			} else if (c_oSerCalcPrTypes.ConcurrentManualCount == type) {
+			} else if (c_oSerCalcPrTypes.ConcurrentManualCount === type) {
 				oCalcPr.concurrentManualCount = this.stream.GetULongLE();
-			} else if (c_oSerCalcPrTypes.ForceFullCalc == type) {
+			} else if (c_oSerCalcPrTypes.ForceFullCalc === type) {
 				oCalcPr.forceFullCalc = this.stream.GetBool();
 			} else {
 				res = c_oSerConstants.ReadUnknown;
