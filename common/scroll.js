@@ -2189,4 +2189,5 @@ CArrowDrawer.prototype.InitSize = function ( sizeW, sizeH )
     //---------------------------------------------------------export---------------------------------------------------
 	window["AscCommon"].ScrollSettings = ScrollSettings;
     window["AscCommon"].ScrollObject = ScrollObject;
+	window["AscCommon"].ArrowType = ArrowType;
 })(window);

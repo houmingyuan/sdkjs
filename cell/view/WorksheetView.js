@@ -9847,7 +9847,7 @@
         var moveWidth = oldW - lastColWidth;
         if (moveWidth > 0) {
         	if (window.rightToleft) {
-				ctx.drawImage(ctx.getCanvas(), x, y, moveWidth, ctxH, x + dx, y, moveWidth, ctxH);
+				ctx.drawImage(ctx.getCanvas(), x - dx, y, moveWidth - this.cellsLeft, ctxH, x, y, moveWidth - this.cellsLeft, ctxH);
 			} else {
 				ctx.drawImage(ctx.getCanvas(), x, y, moveWidth, ctxH, x - dx, y, moveWidth, ctxH);
 			}

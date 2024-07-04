@@ -467,6 +467,9 @@
 				settings.isHorizontalScroll = false;
 
 				this.vsbApi = new AscCommon.ScrollObject(this.vsb.id, settings);
+				if (window.rightToleft) {
+					this.vsbApi.arrowState = AscCommon.ArrowType.ARROW_LEFT;
+				}
 				this.vsbApi.bind("scrollvertical", function (evt) {
 					self.handlers.trigger("scrollY", evt.scrollPositionY / self.settings.vscrollStep, !self.vsbApi.scrollerMouseDown);
 				});
