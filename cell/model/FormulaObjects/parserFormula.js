@@ -8540,6 +8540,9 @@ function parserFormula( formula, parent, _ws ) {
 		if (this.isInDependencies) {
 			return;
 		}
+		if (this.wb.calcPr.calcMode === Asc.c_oAscCalcMode.manual) {
+			return;
+		}
 		this.isInDependencies = true;
 		var ref, wsR;
 		if (this.ca) {

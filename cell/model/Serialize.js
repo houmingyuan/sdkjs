@@ -13503,8 +13503,10 @@
         }
         if (curFormula) {
             cell.setFormulaInternal(curFormula.parsed);
-            if (curFormula.parsed.ca || cell.isNullTextString() || (tmp.ws.workbook.fileVersion.appName && tmp.ws.workbook.calcPr.calcId)) {
-                tmp.ws.workbook.dependencyFormulas.addToChangedCell(cell);
+            let _wb = tmp.ws.workbook;
+            if ((curFormula.parsed.ca || cell.isNullTextString() || _wb.fileVersion.appName &&
+				_wb.calcPr.calcId) && _wb.calcPr.calcMode === Asc.c_oAscCalcMode.auto) {
+				_wb.dependencyFormulas.addToChangedCell(cell);
             }
         }
     };
