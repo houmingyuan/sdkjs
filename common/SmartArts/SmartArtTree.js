@@ -745,46 +745,21 @@
 
 		this.presRoot = mockPresNode.childs[0];
 		this.presRoot.parent = null;
-		this.presRoot.initRootConstraints(this.smartart, this);
+		this.presRoot.initRootConstraints(this.smartart);
 		this.removeCurrentPresNode();
 		this.removeCurrentNode();
 		this.calcConstraints();
-		this.cleanRules();
 		this.calcScaleCoefficients();
 		if (this.factRuleState === factRuleState.disabled) {
-			this.cleanCalcValues();
-			this.calcConstraints();
 			this.calcScaleCoefficients();
 		}
-		this.calcAdaptedConstraints();
-
 		this.executeAlgorithms();
 	};
-	SmartArtAlgorithm.prototype.cleanCalcValues = function () {
-		this.forEachPresFromTop(function (presNode) {
-			presNode.cleanRules();
-			presNode.cleanConstraints();
-			presNode.cleanScales();
-			presNode.cleanPosition();
-		});
-		this.presRoot.initRootConstraints(this.smartart, this);
-	};
-
 
 	SmartArtAlgorithm.prototype.calcScaleCoefficients = function () {
 		const oThis = this;
 		this.forEachPresFromBottom(function (presNode) {
 			presNode.startAlgorithm(oThis, true);
-		});
-	};
-	SmartArtAlgorithm.prototype.calcAdaptedConstraints = function () {
-		const oThis = this;
-		const isNeedSetRules = this.factRuleState !== factRuleState.disabled;
-		this.forEachPresFromTop(function (presNode) {
-			if (isNeedSetRules) {
-				presNode.setRules(oThis);
-			}
-			presNode.setConstraints(true);
 		});
 	};
 	SmartArtAlgorithm.prototype.calcConstraints = function () {
@@ -795,11 +770,6 @@
 				presNode.setRules(oThis);
 			}
 			presNode.setConstraints();
-		});
-	};
-	SmartArtAlgorithm.prototype.cleanRules = function () {
-		this.forEachPresFromTop(function (presNode) {
-			presNode.cleanRules();
 		});
 	};
 	SmartArtAlgorithm.prototype.executeAlgorithms = function () {
@@ -841,7 +811,6 @@
 			}
 		}
 	};
-
 
 	SmartArtAlgorithm.prototype.forEachPresFromTop = function (callback) {
 		const elements = [this.presRoot];
@@ -4362,8 +4331,7 @@ function HierarchyAlgorithm() {
 		}
 	};
 	CycleAlgorithm.prototype.getConstrRadius = function (isCalculateScaleCoefficients) {
-		const constrObject = this.parentNode.getConstraints(!isCalculateScaleCoefficients);
-		const diameter = constrObject[AscFormat.Constr_type_diam];
+		const diameter = this.parentNode.getRawConstraint(AscFormat.Constr_type_diam, !isCalculateScaleCoefficients);
 		if (diameter !== undefined) {
 			return diameter / 2;
 		}
@@ -5551,8 +5519,8 @@ function HierarchyAlgorithm() {
 		} else {
 			width = arrowVector.getDistance();
 		}
-		const constrObj = this.parentNode.getConstraints(true);
-		const height = constrObj[AscFormat.Constr_type_hArH] !== undefined ? constrObj[AscFormat.Constr_type_hArH] : this.parentNode.shape.height;
+		const hArH = this.parentNode.getRawConstraint(AscFormat.Constr_type_hArH, true);
+		const height = hArH !== undefined ? hArH : this.parentNode.getShape(true).height;
 
 		const x = cx - width / 2;
 		const y = cy - height / 2;
@@ -5715,12 +5683,12 @@ function HierarchyAlgorithm() {
 		}
 		let bendDist;
 		if (this.isDoubleBendHorizontalConnector()) {
-			bendDist = this.parentNode.adaptConstr[AscFormat.Constr_type_bendDist];
+			bendDist = this.parentNode.getRawConstraint(AscFormat.Constr_type_bendDist, true);
 			if (bendDist === undefined) {
 				bendDist = Math.abs(startPoint.x - endPoint.x) / 2;
 			}
 		} else if (this.isDoubleBendVerticalConnector()) {
-			bendDist = this.parentNode.adaptConstr[AscFormat.Constr_type_bendDist];
+			bendDist = this.parentNode.getRawConstraint(AscFormat.Constr_type_bendDist, true);
 			if (bendDist === undefined) {
 				bendDist = Math.abs(startPoint.y - endPoint.y) / 2;
 			}
@@ -6004,8 +5972,8 @@ function PresNode(presPoint, contentNode) {
 	this.moveWith = null;
 	this._isTxXfrm = null;
 
+	this.constraints = {};
 	this.cleanRules();
-	this.cleanConstraints();
 	this.cleanScales();
 	this.cleanPosition();
 }
@@ -6018,7 +5986,6 @@ PresNode.prototype.cleanScales = function () {
 		height: 1
 	};
 	this.moveRot = 0;
-	this.parentScale = {};
 };
 PresNode.prototype.setSizesScale = function (widthCoefficient, heightCoefficient) {
 	const aspectRatio = this.getAspectRatio();
@@ -6037,11 +6004,16 @@ PresNode.prototype.setSizesScale = function (widthCoefficient, heightCoefficient
 		}
 	}
 	PresNode.prototype.getParentScale = function (type) {
-		return this.parentScale[type] === undefined ? 1 : this.parentScale[type];
+		const calcConstr = this.constraints[type];
+		if (calcConstr) {
+			return calcConstr.customScale;
+		}
+		return 1;
 	}
 	PresNode.prototype.setParentScale = function (type, value) {
-		if (value < 1 && (this.parentScale[type] === undefined || this.parentScale[type] > value)) {
-			this.parentScale[type] = value;
+		const calcConstr = this.constraints[type];
+		if (calcConstr && value < 1 && calcConstr.customScale > value) {
+			calcConstr.customScale = value;
 		}
 	}
 PresNode.prototype.getDefaultConnectionNode = function() {
@@ -6063,11 +6035,10 @@ PresNode.prototype.getDefaultConnectionNode = function() {
 		return this.shape;
 	};
 	PresNode.prototype.getRelationConstr = function (type) {
-		return this.relations[type];
+		if (this.constraints[type]) {
+			return this.constraints[type].getRelationConstr();
+		}
 	}
-	PresNode.prototype.setRelationConstr = function (refNode, constr) {
-		this.relations[constr.type] = {constr: constr, ref: refNode};
-	};
 	PresNode.prototype.setWidthScale = function (pr) {
 		const relation = this.getRelationConstr(AscFormat.Constr_type_w);
 		if (relation) {
@@ -6089,25 +6060,13 @@ PresNode.prototype.getDefaultConnectionNode = function() {
 		if (!startRelation) {
 			return startCoefficient;
 		}
+
 		let refNode = startRelation.ref;
 		let relationConstr = startRelation.constr;
-		const mapRelations = {};
-		mapRelations[scaleType] = {};
-		if (refNode && refNode.getPresName() === this.getPresName() && relationConstr.type !== relationConstr.refType) {
-			mapRelations[scaleType][this.getPresName()] = true;
-		}
 
 		while (relationConstr && refNode) {
 			const refType = relationConstr.refType;
-			if (!mapRelations[refType]) {
-				mapRelations[refType] = {};
-			}
-			const refPresName = refNode.getPresName();
-			if (mapRelations[refType][refPresName]) {
-				break;
-			}
 			startCoefficient *= refNode.getParentScale(refType);
-			mapRelations[refType][refPresName] = true;
 			const refRelation = refNode.getRelationConstr(refType);
 			if (refRelation) {
 				relationConstr = refRelation.constr;
@@ -6117,7 +6076,7 @@ PresNode.prototype.getDefaultConnectionNode = function() {
 			}
 		}
 		return startCoefficient;
-	}
+	};
 
 	PresNode.prototype.getSummaryHeightScale = function () {
 		return this.getSummaryScale(AscFormat.Constr_type_h);
@@ -6402,6 +6361,7 @@ PresNode.prototype.addChild = function (ch, pos) {
 				this.getNodesByAxis(cacheFor[rule.for], rule.for);
 			}
 			const nodes = cacheFor[rule.for];
+
 			for (let j = 0; j < nodes.length; j++) {
 				nodes[j].setRule(rule, smartartAlgorithm);
 			}
@@ -6418,28 +6378,12 @@ PresNode.prototype.addChild = function (ch, pos) {
 		this.factRules = {};
 		this.valRules = {};
 	};
-	PresNode.prototype.cleanConstraints = function () {
-		this.relations = {};
-		this.equationRelations = {
-			adapt: {},
-			nonAdapt: {}
-		};
-
-		this.equationRelations.nonAdapt[AscFormat.Constr_op_equ] = {};
-		this.equationRelations.nonAdapt[AscFormat.Constr_op_gte] = {};
-		this.equationRelations.nonAdapt[AscFormat.Constr_op_lte] = {};
-		this.equationRelations.nonAdapt[AscFormat.Constr_op_none] = {};
-		this.equationRelations.adapt[AscFormat.Constr_op_equ] = {};
-		this.equationRelations.adapt[AscFormat.Constr_op_gte] = {};
-		this.equationRelations.adapt[AscFormat.Constr_op_lte] = {};
-		this.equationRelations.adapt[AscFormat.Constr_op_none] = {};
-		this.adaptConstr = {};
-		this.constr = {};
-	};
 	PresNode.prototype.setRule = function (rule, smartartAlgorithm) {
 		const node = this.getConstraintNode(rule.forName, rule.ptType.getVal());
-		if (node) {
-			if (AscFormat.isRealNumber(rule.fact)) {
+		const calcConstr = node.constraints[rule.type];
+		if (node && calcConstr) {
+			calcConstr.setRule(rule);
+/*			if (AscFormat.isRealNumber(rule.fact)) {
 				if (rule.val !== rule.val) {
 					node.factRules[rule.type] = rule.fact;
 					smartartAlgorithm.setFactRuleState(factRuleState.enabled);
@@ -6454,15 +6398,178 @@ PresNode.prototype.addChild = function (ch, pos) {
 					default:
 						break;
 				}
-			}
+			}*/
 		}
 	};
-	PresNode.prototype.setConstraints = function (isAdapt) {
+	function RootConstr(value) {
+		this.value = value;
+		this.customScale = 1;
+	}
+	RootConstr.prototype.getValue = function (isAdapt) {
+		return this.value;
+	};
+	RootConstr.prototype.getRelationConstr = function () {
+
+	};
+	function CalcConstr() {
+		this.op = {};
+		this.op[AscFormat.Constr_op_gte]  = null;
+		this.op[AscFormat.Constr_op_lte]  = null;
+		this.op[AscFormat.Constr_op_equ]  = null;
+		this.op[AscFormat.Constr_op_none] = null;
+		this.rule = null;
+		this.customScale = 1;
+	}
+	CalcConstr.prototype.getRelationConstr = function () {
+		const info = this._getValue(true);
+		return info.info;
+	}
+	CalcConstr.prototype.setRule = function (rule) {
+		this.rule = rule;
+	}
+	CalcConstr.prototype.getAspectRatio = function (info) {
+		if (info) {
+			const constr = info.constr;
+			if(!(constr.for === AscFormat.Constr_for_self && constr.refFor === AscFormat.Constr_for_self && !isUserConstr(constr.type))) {
+				const ref = info.ref;
+				return ref.getAspectRatio();
+			}
+		}
+		return 0;
+	};
+	CalcConstr.prototype.getValueFromInfo = function (info, isAdapt) {
+		if (info) {
+			let value;
+			const constr = info.constr;
+			const ref = info.ref;
+			if (constr.refType === AscFormat.Constr_type_none) {
+				if (ref.node.isRoot()) {
+					value = ref.getRawConstraint(constr.type, isAdapt);
+				}
+				if (value === undefined) {
+					value = constr.val;
+				}
+			} else {
+
+				value = ref.getRawConstraint(constr.refType, isAdapt);
+			}
+
+
+			switch (constr.refType) {
+				case AscFormat.Constr_type_w:
+					if (value === undefined) {
+						value = ref.getParentWidth(isAdapt);
+					} else {
+						const aspectRatio = this.getAspectRatio(info);
+						if (aspectRatio) {
+							const height = ref.getRawConstraint(AscFormat.Constr_type_h, isAdapt);
+							if (height !== undefined) {
+								const aspectHeight = height * aspectRatio;
+								if (aspectHeight < value) {
+									value = aspectHeight;
+								}
+							}
+						}
+					}
+					break;
+				case AscFormat.Constr_type_h:
+					if (value === undefined) {
+						value = ref.getParentHeight(isAdapt);
+					} else {
+						const aspectRatio = this.getAspectRatio(info);
+						if (aspectRatio) {
+							const width = ref.getRawConstraint(AscFormat.Constr_type_w, isAdapt);
+							if (width !== undefined) {
+								const aspectWidth = width / aspectRatio;
+								if (aspectWidth < value) {
+									value = aspectWidth;
+								}
+							}
+						}
+					}
+					break;
+				default:
+					break;
+			}
+
+			if (value !== undefined) {
+				if (isAdapt) {
+					value *= this.customScale;
+				}
+				return value * constr.fact;
+			}
+		}
+		return null;
+	}
+	CalcConstr.prototype.getNoneValue = function (isAdapt) {
+		return this.getValueFromInfo(this.op[AscFormat.Constr_op_none], isAdapt);
+	};
+	CalcConstr.prototype.getEquValue = function (isAdapt) {
+		return this.getValueFromInfo(this.op[AscFormat.Constr_op_equ], isAdapt);
+	};
+	CalcConstr.prototype.getLteValue = function (isAdapt) {
+		return this.getValueFromInfo(this.op[AscFormat.Constr_op_lte], isAdapt);
+	};
+	CalcConstr.prototype.getGteValue = function (isAdapt) {
+		return this.getValueFromInfo(this.op[AscFormat.Constr_op_gte], isAdapt);
+	};
+	CalcConstr.prototype.getValue = function (isAdapt) {
+		const info = this._getValue(isAdapt);
+		return info.val;
+	};
+	CalcConstr.prototype._getValue = function (isAdapt) {
+		const equ = this.getEquValue(isAdapt);
+		const none = this.getNoneValue(isAdapt);
+		if (equ !== null) {
+			if (none !== null && none <= equ) {
+				return {info: this.op[AscFormat.Constr_op_none], val: none};
+			}
+			return {info: this.op[AscFormat.Constr_op_equ], val: equ};
+		}
+		const lte = this.getLteValue(isAdapt);
+		const gte = this.getGteValue(isAdapt);
+
+
+		if (none !== null) {
+			if (gte !== null && lte !== null) {
+				if (none >= gte) {
+					if (none <= lte) {
+						return {info: this.op[AscFormat.Constr_op_none], val: none};
+					}
+					return {info: this.op[AscFormat.Constr_op_lte], val: lte};
+				} else {
+					if (gte <= lte) {
+						return {info: this.op[AscFormat.Constr_op_gte], val: gte};
+					}
+					return {info: this.op[AscFormat.Constr_op_lte], val: lte};
+				}
+			} else if (gte !== null) {
+				if (none >= gte) {
+					return {info: this.op[AscFormat.Constr_op_none], val: none};
+				}
+				return {info: this.op[AscFormat.Constr_op_gte], val: gte};
+			} else if (lte !== null) {
+				if (none <= lte) {
+					return {info: this.op[AscFormat.Constr_op_lte], val: lte};
+				}
+				return {info: this.op[AscFormat.Constr_op_none], val: none};
+			}
+			return {info: this.op[AscFormat.Constr_op_none], val: none};
+		}
+
+		if (lte !== null) {
+			return {info: this.op[AscFormat.Constr_op_lte], val: lte};
+		}
+		if (gte !== null) {
+			return {info: this.op[AscFormat.Constr_op_gte], val: gte};
+		}
+		return {};
+	};
+	PresNode.prototype.setConstraints = function () {
 		const constrLst = this.layoutInfo.constrLst;
 		if (!constrLst) {
 			return;
 		}
-		const valueCache = {};
 		let cacheFor = {};
 		let cacheRefFor = {};
 		for (let i = 0; i < constrLst.length; i++) {
@@ -6472,36 +6579,39 @@ PresNode.prototype.addChild = function (ch, pos) {
 				this.getNodesByAxis(cacheFor[constr.for], constr.for);
 			}
 			const nodes = cacheFor[constr.for];
-		if (constr.refFor === AscFormat.Constr_for_self) {
-				if (constr.for === AscFormat.Constr_for_self) {
-					const calcValue = nodes[0].getCalcRefConstr(constr, isAdapt, valueCache);
-					if (AscFormat.isRealNumber(calcValue)) {
-						nodes[0].setConstraintByNode(constr, nodes[0], calcValue, isAdapt);
-					}
-				} else {
-					const calcValue = this.getCalcRefConstr(constr, isAdapt, valueCache);
-					if (AscFormat.isRealNumber(calcValue)) {
-						for (let j = 0; j < nodes.length; j++) {
-							const node = nodes[j];
-							node.setConstraintByNode(constr, this, calcValue, isAdapt);
-						}
-					}
+
+			if (!cacheRefFor[constr.refFor]) {
+				cacheRefFor[constr.refFor] = [];
+				this.getNodesByAxis(cacheRefFor[constr.refFor], constr.refFor);
+			}
+			const refNodes = cacheRefFor[constr.refFor];
+
+			let refNode;
+			const refPtType = constr.refPtType.getVal();
+			for (let j = 0; j < refNodes.length; j += 1) {
+				refNode = refNodes[j].getConstraintNode(constr.refForName, refPtType);
+				if (refNode) {
+					break;
+				}
+			}
+
+			if (!refNode) {
+
+			}
+
+			const constrNodes = [];
+			for (let j = 0; j < nodes.length; j += 1) {
+				const constrNode = nodes[j].getConstraintNode(constr.forName, constr.ptType.getVal());
+				if (constrNode) {
+					constrNodes.push(constrNode);
+				}
+			}
+			if (constrNodes.length) {
+				for (let j = 0; j < constrNodes.length; j += 1) {
+					constrNodes[j].setConstraintByNode(constr, refNode);
 				}
 			} else {
-				if (!cacheRefFor[constr.refFor]) {
-					cacheRefFor[constr.refFor] = [];
-					this.getNodesByAxis(cacheRefFor[constr.refFor], constr.refFor);
-				}
-				const refNodes = cacheRefFor[constr.refFor];
-				for (let j = 0; j < refNodes.length; j++) {
-					const calcValue = refNodes[j].getCalcRefConstr(constr, isAdapt, valueCache);
-					if (AscFormat.isRealNumber(calcValue)) {
-						for (let k = 0; k < nodes.length; k++) {
-							nodes[k].setConstraintByNode(constr, refNodes[j], calcValue, isAdapt);
-						}
-						break;
-					}
-				}
+
 			}
 		}
 	}
@@ -6551,79 +6661,13 @@ PresNode.prototype.addChild = function (ch, pos) {
 		return node && node.checkPtType(ptType);
 	};
 
-	PresNode.prototype.getCalcRefConstr = function (constr, isAdapt, valueCache) {
-		const refPtType = constr.refPtType.getVal();
-		if (!constr.refForName) {
-			if (!valueCache[constr.refFor]) {
-				valueCache[constr.refFor] = {};
-			}
-			if (!valueCache[constr.refFor][refPtType]) {
-				valueCache[constr.refFor][refPtType] = {};
-			}
-			const cacheValue = valueCache[constr.refFor][refPtType][constr.refType];
-			if (AscFormat.isRealNumber(cacheValue)) {
-				return cacheValue;
-			}
+	PresNode.prototype.setConstraintByNode = function (constr, refNode) {
+		if (!this.constraints[constr.type]) {
+			this.constraints[constr.type] = new CalcConstr();
 		}
-
-		const refNode = this.getConstraintNode(constr.refForName, refPtType);
-		if (!refNode) {
-			return;
-		}
-		const calcValue = refNode.getRefConstr(constr, isAdapt);
-		if (constr.refType !== AscFormat.Constr_type_none && !constr.refForName && constr.refFor !== AscFormat.Constr_for_self) {
-			valueCache[constr.refFor][refPtType][constr.refType] = calcValue;
-		}
-		return calcValue;
-	};
-	PresNode.prototype.setConstraintByNode = function (constr, refNode, calcValue, isAdapt) {
-		const constrNode = this.getConstraintNode(constr.forName, constr.ptType.getVal());
-		if (constrNode) {
-			constrNode.addEqualRelation(refNode, constr, isAdapt);
-			const isSettingConstraint = constrNode.setConstraint(constr, calcValue, isAdapt);
-			constrNode.setParamConstraint(constr, refNode);
-			if (isSettingConstraint) {
-				constrNode.applyEqualRelations(isAdapt);
-				setRelationConstraints(constrNode, refNode, constr);
-			}
-		}
-	};
-
-	function setRelationConstraints(constrNode, refNode, constr) {
-		switch (constr.type) {
-			case AscFormat.Constr_type_w:
-			case AscFormat.Constr_type_h:
-				constrNode.setRelationConstr(refNode, constr);
-				break;
-			default:
-				break;
-		}
-	}
-
-	PresNode.prototype.addEqualRelation = function (refNode, constr, isAdapt) {
-		const relations = isAdapt ? this.equationRelations.adapt : this.equationRelations.nonAdapt;
-		relations[constr.op][constr.type] = {constr: constr, ref: refNode};
-	};
-	PresNode.prototype.applyEqualRelations = function (isAdapt) {
-		const relations = isAdapt ? this.equationRelations.adapt : this.equationRelations.nonAdapt;
-		const equRelations = relations[AscFormat.Constr_op_equ];
-		for (let constrType in equRelations) {
-			const rel = equRelations[constrType];
-			const constr = rel.constr;
-			const refNode = rel.ref;
-
-			const refConstrObject = isAdapt ? refNode.adaptConstr : refNode.constr;
-			const curConstrObject = isAdapt ? this.adaptConstr : this.constr;
-
-			let factor = this.getFactRule(constr);
-			if (refConstrObject[constr.refType]) {
-				if ( refNode === this && refConstrObject[constr.refType] * factor !== curConstrObject[constr.type]) {
-					refConstrObject[constr.refType] = curConstrObject[constr.type];
-				} else {
-					curConstrObject[constr.type] = refConstrObject[constr.refType] * factor;
-				}
-			}
-		}
+		const calcConstr = this.constraints[constr.type];
+		calcConstr.op[constr.op] = {ref: refNode, constr: constr};
+		this.setParamConstraint(constr, refNode);
 	};
 	PresNode.prototype.setParamConstraint = function (constr, refNode) {
 		switch (constr.type) {
@@ -6674,47 +6718,13 @@ PresNode.prototype.addChild = function (ch, pos) {
 	}
 
 	PresNode.prototype.setConstraint = function (constr, value, isAdapt) {
-		if (!this.isCanAdapt(constr, isAdapt)) {
-			return false;
-		}
 		let factor = this.getFactRule(constr);
 		value *= factor;
 		const constrObject = this.getConstraints(isAdapt);
+
+		//todo: move to skip settingconstraints
 		if (constrObject[constr.type] !== undefined && constr.refFor === AscFormat.Constr_for_self && constr.refType === AscFormat.Constr_type_none) {
 			return false;
-		}
-
-		switch (constr.op) {
-			case AscFormat.Constr_op_gte: {
-				const oldValue = constrObject[constr.type];
-				if (oldValue !== undefined && value < oldValue) {
-					return false;
-				}
-				break;
-			}
-			case AscFormat.Constr_op_lte: {
-				const oldValue = constrObject[constr.type];
-				if (oldValue !== undefined && value > oldValue) {
-					return false;
-				}
-				break;
-			}
-			default: {
-				break;
-			}
-		}
-		if (isAdapt) {
-			switch (constr.type) {
-				case AscFormat.Constr_type_w:
-				case AscFormat.Constr_type_h: {
-					const summaryScale = this.getSummaryScale(constr.type);
-					const parentScale = Math.min(this.getParentScale(constr.type) / summaryScale, 1);
-					value *= parentScale;
-					break;
-				}
-				default:
-					break;
-			}
 		}
 
 
@@ -6750,141 +6760,66 @@ PresNode.prototype.addChild = function (ch, pos) {
 				break;
 			}
 		}
-		if (this.valRules[constr.type] !== Infinity) {
-			constrObject[constr.type] = value;
-		}
 		return true;
 	};
 	PresNode.prototype.getParentWidth = function (isAdapt) {
 		let node = this;
-		while (node.isContentNode() && node.parent) {
-			const parentConstrObject = isAdapt ? node.parent.adaptConstr : node.parent.constr;
-			let parentWidth = parentConstrObject[AscFormat.Constr_type_w];
-			let parentHeight = parentConstrObject[AscFormat.Constr_type_h];
-			const aspectRatio = node.parent.getAspectRatio();
-			if (aspectRatio) {
-				const aspectWidth = parentHeight * aspectRatio;
-				if (parentWidth > aspectWidth) {
-					parentWidth = aspectWidth;
+		while (node.parent) {
+			const parent = node.parent;
+			let value = parent.getRawConstraint(AscFormat.Constr_type_w, isAdapt);
+			if (value !== undefined) {
+				const aspectRatio = parent.getAspectRatio();
+				if (aspectRatio) {
+					const parentHeight = parent.getRawConstraint(AscFormat.Constr_type_h, isAdapt);
+					if (parentHeight !== undefined) {
+						const aspectWidth = parentHeight * aspectRatio;
+						if (value > aspectWidth) {
+							value = aspectWidth;
+						}
+					}
 				}
+				return value;
 			}
-			if (parentWidth) {
-				return parentWidth;
-			}
-			node = node.parent;
+			node = parent;
 		}
 	};
 	PresNode.prototype.getParentHeight = function (isAdapt) {
 		let node = this;
-		while (node.isContentNode() && node.parent) {
-			const parentConstrObject = isAdapt ? node.parent.adaptConstr : node.parent.constr;
-			let parentWidth = parentConstrObject[AscFormat.Constr_type_w];
-			let parentHeight = parentConstrObject[AscFormat.Constr_type_h];
-			const aspectRatio = node.parent.getAspectRatio();
-			if (aspectRatio) {
-				const aspectWidth = parentHeight * aspectRatio;
-				if (parentWidth <= aspectWidth) {
-					parentHeight = parentWidth / aspectRatio;
+		while (node.parent) {
+			const parent = node.parent;
+			let parentHeight = parent.getRawConstraint(AscFormat.Constr_type_h, isAdapt);
+			if (parentHeight !== undefined) {
+				const aspectRatio = parent.getAspectRatio();
+				if (aspectRatio) {
+					let parentWidth = parent.getRawConstraint(AscFormat.Constr_type_w, isAdapt);
+					if (parentWidth !== undefined) {
+						const aspectWidth = parentHeight * aspectRatio;
+						if (parentWidth <= aspectWidth) {
+							parentHeight = parentWidth / aspectRatio;
+						}
+					}
 				}
-			}
-			if (parentHeight) {
 				return parentHeight;
 			}
-			node = node.parent;
+			node = parent;
 		}
 	};
-	PresNode.prototype.isCanAdapt = function (constr, isAdapt) {
-		if (isAdapt) {
-			switch (constr.type) {
-				case AscFormat.Constr_type_w:
-				case AscFormat.Constr_type_h: {
-					const relation = this.getRelationConstr(constr.type);
-					return !!(relation && constr === relation.constr);
-				}
-				default:
-					return true;
-			}
+	PresNode.prototype.getRawConstraint = function (type, isAdapt) {
+		const calcConstr = this.constraints[type];
+		if (calcConstr) {
+			return calcConstr.getValue(isAdapt);
 		}
-		return true;
-	}
-	PresNode.prototype.getRefConstr = function (constr, isAdapt) {
-		let aspectRatio;
-		if (!(constr.for === AscFormat.Constr_for_self && constr.refFor === AscFormat.Constr_for_self && !isUserConstr(constr.type))) {
-			aspectRatio = this.getAspectRatio();
-		}
-		const constrObject = isAdapt ? this.adaptConstr : this.constr;
-		let value;
-		if (isUserConstr(constr.type) && constr.refType === AscFormat.Constr_type_none && constrObject[constr.type] !== undefined && constr.refFor === AscFormat.Constr_for_self) {
-			value = constrObject[constr.type];
-		} else if (constr.refType === AscFormat.Constr_type_none) {
-			value = constr.val;
-		} else if (constrObject[constr.refType]) {
-			value = constrObject[constr.refType];
-		}
-		if (value !== undefined) {
-			if (aspectRatio) {
-				switch (constr.refType) {
-					case AscFormat.Constr_type_h:
-							const width = constrObject[AscFormat.Constr_type_w];
-							if (width !== undefined) {
-								const aspectWidth = width / aspectRatio;
-								if (aspectWidth < value) {
-									value = aspectWidth;
-								}
-							}
-
-						break;
-					case AscFormat.Constr_type_w:
-							const height = constrObject[AscFormat.Constr_type_h];
-							if (height !== undefined) {
-								const aspectHeight = height * aspectRatio;
-								if (aspectHeight < value) {
-									value = aspectHeight;
-								}
-							}
-						break;
-					default:
-						break;
-				}
-			}
-		} else {
-			value = this.getConstr(constr.refType, isAdapt, true);
-			if (value === undefined) {
-				switch (constr.refType) {
-					case AscFormat.Constr_type_w: {
-						const parentWidth = this.getParentWidth(isAdapt);
-						constrObject[AscFormat.Constr_type_w] = parentWidth;
-						return parentWidth;
-					}
-					case AscFormat.Constr_type_h: {
-						const parentHeight = this.getParentHeight(isAdapt);
-						constrObject[AscFormat.Constr_type_h] = parentHeight;
-						return parentHeight;
-					}
-					default: {
-						value = constr.val;
-						break;
-					}
-				}
-			}
-		}
-		return value;
 	};
 
 	PresNode.prototype.setAlgorithm = function (algorithm) {
 		this.algorithm = algorithm;
-	}
-
-	PresNode.prototype.getAlgorithm = function () {
-		return this.algorithm;
-	}
+	};
 	PresNode.prototype.getPositionConstrWithOffset = function (posConstrType, offsetConstrType, isAdapt) {
-		const constrObject = this.getConstraints(isAdapt);
-		const position = constrObject[posConstrType];
+		const position = this.getRawConstraint(posConstrType, isAdapt);
 		let result;
 		if (position !== undefined) {
 			result = position;
-			const offset = constrObject[offsetConstrType];
+			const offset = this.getRawConstraint(offsetConstrType, isAdapt);
 			if (offset !== undefined) {
 				result += offset;
 			}
@@ -6910,13 +6845,11 @@ PresNode.prototype.addChild = function (ch, pos) {
 			case AscFormat.Constr_type_h:
 				return this.getPositionConstrWithOffset(type, AscFormat.Constr_type_hOff, isAdapt);
 			default:
-				const constrObj = this.getConstraints(isAdapt);
-				return constrObj[type];
+				return this.getRawConstraint(type, isAdapt);
 		}
 	};
 	PresNode.prototype.getConstr = function (type, isAdapt, skipDefaultValue, depth) {
 		depth = depth || 0;
-		const constrObj = isAdapt ? this.adaptConstr : this.constr;
 		let result = this.getConstrForCalculating(type, isAdapt);
 		if (depth < 2) {
 			switch (type) {
@@ -6950,7 +6883,7 @@ PresNode.prototype.addChild = function (ch, pos) {
 					if (right !== undefined && left !== undefined) {
 						result = right - left;
 					} else if (this.algorithm instanceof TextAlgorithm && result === undefined) {
-						const wOff = constrObj[AscFormat.Constr_type_wOff];
+						const wOff = this.getConstrForCalculating(AscFormat.Constr_type_wOff, isAdapt);
 						result = this.getParentWidth(isAdapt);
 						if (left !== undefined) {
 							result -= left;
@@ -6966,7 +6899,7 @@ PresNode.prototype.addChild = function (ch, pos) {
 					if (bottom !== undefined && top !== undefined) {
 						result = bottom - top;
 					} else if (this.algorithm instanceof TextAlgorithm && result === undefined) {
-						const hOff = constrObj[AscFormat.Constr_type_hOff];
+						const hOff = this.getConstrForCalculating(AscFormat.Constr_type_hOff, isAdapt);
 						result = this.getParentHeight(isAdapt);
 						if (top !== undefined) {
 							result -= top;
@@ -7183,9 +7116,6 @@ PresNode.prototype.addChild = function (ch, pos) {
 			shape.height = bounds.b - bounds.t;
 		}
 	};
-	PresNode.prototype.getConstraints = function (isAdapt) {
-		return isAdapt ? this.adaptConstr : this.constr;
-	};
 	PresNode.prototype.setMoveRot = function (rot) {
 		this.moveRot = rot;
 	}
@@ -7359,11 +7289,9 @@ PresNode.prototype.addChild = function (ch, pos) {
 		return this.moveScaleCoefficients.width;
 	}
 
-	PresNode.prototype.initRootConstraints = function (smartArt, smartartAlgorithm) {
-		this.constr[AscFormat.Constr_type_w] = smartArt.spPr.xfrm.extX;
-		this.constr[AscFormat.Constr_type_h] = smartArt.spPr.xfrm.extY;
-		this.adaptConstr[AscFormat.Constr_type_w] = smartArt.spPr.xfrm.extX;
-		this.adaptConstr[AscFormat.Constr_type_h] = smartArt.spPr.xfrm.extY;
+	PresNode.prototype.initRootConstraints = function (smartArt) {
+		this.constraints[AscFormat.Constr_type_w] = new RootConstr(smartArt.spPr.xfrm.extX);
+		this.constraints[AscFormat.Constr_type_h] = new RootConstr(smartArt.spPr.xfrm.extY);
 	};
 	PresNode.prototype.getModelId = function () {
 		return this.presPoint.getModelId();
