@@ -4241,9 +4241,8 @@
 	};
 
     WorksheetView.prototype._clean = function () {
-        this.drawingCtx
-            .setFillStyle( this.settings.cells.defaultState.background )
-            .fillRect( 0, 0, this.drawingCtx.getWidth(), this.drawingCtx.getHeight() );
+		this.drawingCtx.setFillStyle(this.settings.cells.defaultState.background);
+		this._fillRect(this.drawingCtx, 0, 0, this.drawingCtx.getWidth(), this.drawingCtx.getHeight());
         if ( this.overlayCtx ) {
             this.overlayCtx.clear();
         }
@@ -4655,6 +4654,22 @@
     };
 
 	window.rightToleft = true;
+
+	WorksheetView.prototype._lineHor = function (ctx, x1, y, x2) {
+		ctx.lineHor(window.rightToleft ? (ctx.getWidth() - x1) : x1, y, window.rightToleft ? (ctx.getWidth() - x2) : x2)
+		return ctx;
+	};
+
+	WorksheetView.prototype._lineVer = function (ctx, x, y1, y2) {
+		ctx.lineVer(window.rightToleft ? (ctx.getWidth() - x) :  x, y1, y2)
+		return ctx;
+	};
+
+	WorksheetView.prototype._lineDiag = function (ctx, x1, y1, x2, y2) {
+		ctx.lineDiag(window.rightToleft ? (ctx.getWidth() - x1) : x1, y1, window.rightToleft ? (ctx.getWidth() - x2) : x2, y2);
+		return ctx;
+	};
+
 	WorksheetView.prototype._lineVerPrevPx = function (ctx, x, y1, y2) {
 		ctx.lineVerPrevPx(window.rightToleft ? (ctx.getWidth() - x) :  x, y1, y2)
 		return ctx;
@@ -4716,6 +4731,10 @@
 	WorksheetView.prototype._drawText = function (stringRender, ctx, textX, textY, textW, color) {
 		stringRender.render(ctx, window.rightToleft ? (ctx.getWidth() - textX - textW) : textX, textY, textW, color);
 		return stringRender;
+	};
+	WorksheetView.prototype._strokeRect = function (ctx, x, y, w, h) {
+		ctx.strokeRect(window.rightToleft ? (ctx.getWidth() - x - w) : x, y, w, h);
+		return ctx;
 	};
 
 
@@ -5195,9 +5214,8 @@
 			left = this._getColLeft(range.c1);
 			top = this._getRowTop(range.r1);
 			// set clipping rect to cells area
-			this.drawingCtx.save()
-				.beginPath()
-				.rect(left - offsetX, top - offsetY, Math.min(this._getColLeft(range.c2 + 1) - left, this.drawingCtx.getWidth() - this.cellsLeft),
+			this.drawingCtx.save().beginPath();
+			this._rect(this.drawingCtx, left - offsetX, top - offsetY, Math.min(this._getColLeft(range.c2 + 1) - left, this.drawingCtx.getWidth() - this.cellsLeft),
 					Math.min(this._getRowTop(range.r2 + 1) - top, this.drawingCtx.getHeight() - this.cellsTop))
 				.clip();
 		}
@@ -5452,9 +5470,13 @@
 				if (oRuleElement.AxisColor) {
 					ctx.setLineWidth(1).setLineDash([3, 1]).setStrokeStyle(oRuleElement.AxisColor);
 					if (automaticAxisPos) {
-						ctx.beginPath().lineVer(x + middleX, top - 1, top - 1 + height - 1).stroke();
+						ctx.beginPath();
+						this._lineVer(ctx, x + middleX, top - 1, top - 1 + height - 1);
+						ctx.stroke();
 					} else {
-						ctx.beginPath().lineVer(x + Asc.floor(width / 2), top - 1, top - 1 + height - 1).stroke();
+						ctx.beginPath();
+						this._lineVer(ctx, x + Asc.floor(width / 2), top - 1, top - 1 + height - 1);
+						ctx.stroke();
 					}
 				}
 
@@ -5506,7 +5528,8 @@
 
 			var color = (isPositive || oRuleElement.NegativeBarBorderColorSameAsPositive) ? oRuleElement.BorderColor : oRuleElement.NegativeBorderColor;
 			if (color) {
-				ctx.setLineWidth(1).setLineDash([]).setStrokeStyle(color).strokeRect(x, top, dataBarLength - 1, height - 4);
+				ctx.setLineWidth(1).setLineDash([]).setStrokeStyle(color);
+				this._strokeRect(ctx, x, top, dataBarLength - 1, height - 4);
 			}
 		}
 	};
@@ -6038,7 +6061,7 @@
 			let extLength = Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2));
 			if (extLength === 0 && angle === 0) {
 				// temporary exception
-				ctx.lineDiag(x1, y1, x2, y2);
+				t._lineDiag(ctx, x1, y1, x2, y2);
 				ctx.stroke();
 
 				!external ? drawDot(x1, y1, lineColor) : drawDot(x1, y1, externalLineColor);
@@ -6058,8 +6081,8 @@
 				} else {
 					ctx.beginPath();
 					ctx.setStrokeStyle(!external ? lineColor : externalLineColor);
-					ctx.moveTo(x1, y1);
-					ctx.lineTo(newX2, newY2);
+					t._moveTo(ctx, x1, y1);
+					t._lineTo(ctx, newX2, newY2);
 					ctx.stroke();
 					drawArrowHead(newX2, newY2, arrowSize, angle, lineColor);
 					drawDot(x1, y1, lineColor);
@@ -6139,13 +6162,13 @@
 			ctx.setLineWidth(widthLine);
 			ctx.beginPath();
 			ctx.setStrokeStyle(externalLineColor);
-			ctx.lineDiag(x1, y1, x2, y2);
+			t._lineDiag(ctx, x1, y1, x2, y2);
 			ctx.stroke();
 
 			ctx.setStrokeStyle(whiteColor);
 			for (let i = 0; i < dashCount; i++) {
 				ctx.beginPath();
-				ctx.lineDiag(x1, y1, x1 - xStep * 0.2, y1 - yStep * 0.2);
+				t._lineDiag(ctx, x1, y1, x1 - xStep * 0.2, y1 - yStep * 0.2);
 				ctx.stroke();
 				x1 += xStep;
 				y1 += yStep;
@@ -6177,9 +6200,9 @@
 
 			ctx.beginPath();
 			ctx.moveTo(x2, y2);
-			ctx.lineTo(x2 + Math.cos(lineDeg1 * Math.PI / 180) * arrowSize / 2, y2 + Math.sin(lineDeg1 * Math.PI / 180) * arrowSize / 2);
-			ctx.lineTo(x2 + Math.cos(lineDeg * Math.PI / 180) * arrowSize, y2 + Math.sin(lineDeg * Math.PI / 180) * arrowSize);
-			ctx.lineTo(x2 + Math.cos(lineDeg2 * Math.PI / 180) * arrowSize / 2, y2 + Math.sin(lineDeg2 * Math.PI / 180) * arrowSize / 2);
+			t._lineTo(ctx, x2 + Math.cos(lineDeg1 * Math.PI / 180) * arrowSize / 2, y2 + Math.sin(lineDeg1 * Math.PI / 180) * arrowSize / 2);
+			t._lineTo(ctx, x2 + Math.cos(lineDeg * Math.PI / 180) * arrowSize, y2 + Math.sin(lineDeg * Math.PI / 180) * arrowSize);
+			t._lineTo(ctx, x2 + Math.cos(lineDeg2 * Math.PI / 180) * arrowSize / 2, y2 + Math.sin(lineDeg2 * Math.PI / 180) * arrowSize / 2);
 			ctx.closePath().fill();
 		};
 		const drawDot = function (x, y, color) {
@@ -6212,7 +6235,7 @@
 			// draw white canvas behind the table
 			ctx.setFillStyle(whiteColor);
 			ctx.beginPath();
-			ctx.fillRect(x1, y1 - lineWidth, tableWidth, tableHeight + (lineWidth * 2));
+			t._fillRect(ctx, x1, y1 - lineWidth, tableWidth, tableHeight + (lineWidth * 2));
 
 			ctx.setLineWidth(lineWidth);
 			ctx.setFillStyle(cellStrokesColor);
@@ -6224,14 +6247,14 @@
 
 			let isEven = lineWidth % 2 !== 0 ? 0.5 : 0;
 			ctx.beginPath();
-			ctx.fillRect(x1, y1 - lineWidth, tableWidth + isEven, lineWidth + isEven);
-			ctx.strokeRect(x1, y1 - lineWidth, tableWidth, tableHeight + lineWidth);
+			t._fillRect(ctx, x1, y1 - lineWidth, tableWidth + isEven, lineWidth + isEven);
+			t._strokeRect(ctx, x1, y1 - lineWidth, tableWidth, tableHeight + lineWidth);
 
 			// Vertical lines
 			for (let i = 1; i < 3; i++) {
 				let x2 = i * cellWidth;
 				ctx.beginPath();
-				ctx.lineVer(x2 + x1, y1, y1 + tableHeight);
+				t.lineVer(ctx, x2 + x1, y1, y1 + tableHeight);
 				ctx.stroke();
 			}
 
@@ -6239,7 +6262,7 @@
 			for (let j = 1; j < 3; j++) {
 				let y2 = j * cellHeight;
 				ctx.beginPath();
-				ctx.lineHor(x1, y1 + y2, x1 + tableWidth);
+				t.lineHor(ctx, x1, y1 + y2, x1 + tableWidth);
 				ctx.stroke();
 			}
 		};
@@ -6261,7 +6284,7 @@
 				ctx.beginPath();
 				ctx.setStrokeStyle(lineColor);
 				ctx.setLineWidth(1);
-				ctx.strokeRect(x1, y1, Math.abs(x2 - x1), Math.abs(y2 - y1));
+				t._strokeRect(ctx, x1, y1, Math.abs(x2 - x1), Math.abs(y2 - y1));
 				// then go to the next area
 			}
 		};
@@ -6488,6 +6511,7 @@
                 continue;
             }
 
+			//TODO rightToLeft
             ctx.fillRect( this._getColLeft(col + 1) - offsetX - gridlineSize, this._getRowTop(row) - offsetY, gridlineSize, this._getRowHeight(row) - gridlineSize );
         }
     };
@@ -6551,13 +6575,13 @@
 
 			switch (type) {
 				case c_oAscBorderType.Hor:
-					ctx.lineHor(x1, y1, x2);
+					t._lineHor(ctx, x1, y1, x2);
 					break;
 				case c_oAscBorderType.Ver:
-					ctx.lineVer(x1, y1, y2);
+					t._lineVer(ctx, x1, y1, y2);
 					break;
 				case c_oAscBorderType.Diag:
-					ctx.lineDiag(x1, y1, x2, y2);
+					t._lineDiag(ctx, x1, y1, x2, y2);
 					break;
 			}
 		}
@@ -6979,8 +7003,8 @@
                         var offsetY = this._getRowTop(this.visibleRange.r1) - this.cellsTop;
                         offsetFrozen = this.getFrozenPaneOffset( true, false );
                         offsetY -= offsetFrozen.offsetY;
-                        ctx.setFillPattern( this.settings.ptrnLineDotted1 )
-                            .fillRect( 0, this._getRowTop(data.row) - offsetY - 1, w, 1 );
+                        ctx.setFillPattern( this.settings.ptrnLineDotted1 );
+						this._fillRect( ctx, 0, this._getRowTop(data.row) - offsetY - 1, w, 1 );
                     }
                 }
                 break;
@@ -7251,8 +7275,8 @@
         let dashThickLine = AscCommonExcel.selectionLineType.DashThick & selectionLineType;
 
         if (isDashLine || dashThickLine) {
-            fHorLine = ctx.dashLineCleverHor;
-            fVerLine = ctx.dashLineCleverVer;
+            fHorLine = this._dashLineCleverHor;
+            fVerLine = this._dashLineCleverVer;
         } else {
             fHorLine = this._lineHorPrevPx;
             fVerLine = this._lineVerPrevPx;
@@ -7482,8 +7506,8 @@
 
         // set clipping rect to cells area
         var ctx = this.overlayCtx;
-        ctx.save().beginPath()
-          .rect(this.cellsLeft, this.cellsTop, ctx.getWidth() - this.cellsLeft, ctx.getHeight() - this.cellsTop)
+        ctx.save().beginPath();
+		this._rect(ctx, this.cellsLeft, this.cellsTop, ctx.getWidth() - this.cellsLeft, ctx.getHeight() - this.cellsTop)
           .clip();
 
 		//draw foreign cursors
@@ -7775,8 +7799,8 @@
 
 		let fHorLine, fVerLine;
 
-		fHorLine = ctx.lineHorPrevPx;
-		fVerLine = ctx.lineVerPrevPx;
+		fHorLine = this._lineHorPrevPx;
+		fVerLine = this._lineVerPrevPx;
 
 
 		if (AscBrowser.retinaPixelRatio >= 2) {
@@ -7792,7 +7816,7 @@
 			let y2 = this._getRowTop(visibleRange.r2 + 1) - offsetY;
 
 			ctx.setLineWidth(widthLine).setStrokeStyle(strokeColor);
-			fVerLine.apply(ctx, [x1, y1, y2]);
+			fVerLine.apply(ctx, [ctx, x1, y1, y2]);
 			ctx.closePath().stroke();
 		} else if (row != null) {
 			if (!visibleRange.containsRow(row)) {
@@ -7803,7 +7827,7 @@
 			let x2 = this._getColLeft(visibleRange.c2 + 1) - offsetX;
 
 			ctx.setLineWidth(widthLine).setStrokeStyle(strokeColor);
-			fHorLine.apply(ctx, [x1, y, x2]);
+			fHorLine.apply(ctx, [ctx, x1, y, x2]);
 			ctx.closePath().stroke();
 		}
 
@@ -8219,9 +8243,9 @@
 
         ctx.clear();
         this._drawSelection();
-        ctx.setFillPattern( this.settings.ptrnLineDotted1 )
-            .fillRect( x1, 0, 1, h )
-            .fillRect( x, 0, 1, h );
+        ctx.setFillPattern( this.settings.ptrnLineDotted1 );
+		this._fillRect( ctx, x1, 0, 1, h )
+		this._fillRect( ctx, x, 0, 1, h );
 
         return new asc_CMM( {
             type      : Asc.c_oAscMouseMoveType.ResizeColumn,
@@ -8252,8 +8276,8 @@
         ctx.clear();
         this._drawSelection();
         ctx.setFillPattern( this.settings.ptrnLineDotted1 )
-            .fillRect( 0, y1, w, 1 )
-            .fillRect( 0, y, w, 1 );
+		this._fillRect( ctx, 0, y1, w, 1 )
+		this._fillRect( ctx, 0, y, w, 1 );
 
         return new asc_CMM( {
             type      : Asc.c_oAscMouseMoveType.ResizeRow,
@@ -9301,6 +9325,7 @@
                 // draw_arrow(ctx, x1, y1, x2, y2);
 
                 // ToDo посмотреть на четкость rect
+				//TODO rightToLeft
                 if (nodeCellMetrics.apl > this._getColLeft(0) && nodeCellMetrics.apt > this._getRowTop(0)) {
                     ctx.save()
                       .beginPath()
@@ -9634,6 +9659,7 @@
         var lastRowHeight = (scrollDown && oldVRE_isPartial) ?
         ctxH - (this._getRowTop(oldEnd) - topOldStart + this.cellsTop + diffHeight) : 0;
 
+		//TODO rightToLeft
         //TODO рассмотреть все случаи, когда необходимо вычитать groupWidth
         if (x !== this.cellsLeft) {
 			this.scrollType |= AscCommonExcel.c_oAscScrollType.ScrollHorizontal;
@@ -18795,17 +18821,17 @@
 			ctx.setStrokeStyle(t.settings.cells.defaultState.border);
 
 			var _diff = isPivotCollapsed ? 1 : 0;
-			ctx.fillRect(startX + _diff, startY + _diff, width - _diff, height - _diff);
+			t._fillRect(ctx, startX + _diff, startY + _diff, width - _diff, height - _diff);
 			if (isPivotCollapsed) {
 				ctx.beginPath();
-				ctx.lineHor(startX + _diff, startY, startX + width);
-				ctx.lineHor(startX + _diff, startY + height, startX + width);
-				ctx.lineVer(startX, startY + _diff, startY + height);
-				ctx.lineVer(startX + width, startY + _diff, startY + height);
+				t._lineHor(ctx, startX + _diff, startY, startX + width);
+				t._lineHor(ctx, startX + _diff, startY + height, startX + width);
+				t._lineVer(ctx, startX, startY + _diff, startY + height);
+				t._lineVer(ctx, startX + width, startY + _diff, startY + height);
 
 				ctx.stroke();
 			} else {
-				ctx.strokeRect(startX, startY, width, height);
+				t._strokeRect(ctx, startX, startY, width, height);
 			}
 		};
 
@@ -18813,7 +18839,7 @@
 			//isDescending = true - стрелочка смотрит вниз
 			//рисуем сверху вниз
 			ctx.beginPath();
-			ctx.lineVer(startX, startY, startY + heightArrow * scaleIndex);
+			t._lineVer(ctx, startX, startY, startY + heightArrow * scaleIndex);
 
 			var tmp;
 			var x = startX;
@@ -18828,11 +18854,11 @@
 					x1 = x - tmp;
 					x2 = x - tmp + 1;
 					y1 = y - tmp + heightArrow1 - 1;
-					ctx.lineHor(x1, y1, x2);
+					t._lineHor(ctx, x1, y1, x2);
 					x1 = x + tmp;
 					x2 = x + tmp + 1;
 					y1 = y - tmp + heightArrow1 - 1;
-					ctx.lineHor(x1, y1, x2);
+					t._lineHor(ctx, x1, y1, x2);
 				}
 			} else {
 				for (i = 0; i < height; i++) {
@@ -18840,11 +18866,11 @@
 					x1 = x - tmp;
 					x2 = x - tmp + 1;
 					y1 = y + tmp;
-					ctx.lineHor(x1, y1, x2);
+					t._lineHor(ctx, x1, y1, x2);
 					x1 = x + tmp;
 					x2 = x + tmp + 1;
 					y1 = y + tmp;
-					ctx.lineHor(x1, y1, x2);
+					t._lineHor(ctx, x1, y1, x2);
 				}
 			}
 
@@ -18864,8 +18890,8 @@
 
 			ctx.beginPath();
 
-			ctx.moveTo(x, y);
-			ctx.lineTo(x, y - heightCleanLine);
+			t._moveTo(ctx, x, y);
+			t._lineTo(ctx, x, y - heightCleanLine);
 			ctx.setLineWidth(2 * t.getRetinaPixelRatio() * (isMobileRetina ? 2 : 1));
 			ctx.setStrokeStyle(m_oColor);
 			ctx.stroke();
@@ -18888,7 +18914,7 @@
 			var diffY = (height / 2);
 			height = height * scaleIndex;
 			for (var i = 0; i < height; i++) {
-				ctx.lineHor(x - (i + base), y + (height - i) - diffY, x + i)
+				t._lineHor(ctx, x - (i + base), y + (height - i) - diffY, x + i)
 			}
 
 			ctx.setStrokeStyle(m_oColor);
@@ -19107,8 +19133,8 @@
 
 		var diff = Math.floor((lnW - 1) / 2);
 		ctx.beginPath();
-		ctx.lineVer(x1 - diff, y1 + 1, y1 - lnSize + 1);
-		ctx.lineHor(x1 + 1, y1 - diff, x1 - lnSize + 1);
+		t._lineVer(ctx, x1 - diff, y1 + 1, y1 - lnSize + 1);
+		t._lineHor(ctx, x1 + 1, y1 - diff, x1 - lnSize + 1);
 
 
 		ctx.setStrokeStyle(m_oColor);
@@ -21923,7 +21949,7 @@
 			ctx.beginPath();
 
 			if(buttons[i].clean) {
-				ctx.clearRect(x, y, w, h);
+				this._clearRect(ctx, x, y, w, h);
 			}
 
 			this._lineHorPrevPx(ctx, x, y, x + w);
@@ -22107,7 +22133,7 @@
 		var h = props.h;
 
 		if(bClean) {
-			this.drawingCtx.clearRect(x, y, w, h);
+			t._clearRect(this.drawingCtx, x, y, w, h);
 		}
 
 		ctx.beginPath();
