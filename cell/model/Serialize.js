@@ -13504,7 +13504,7 @@
         if (curFormula) {
             cell.setFormulaInternal(curFormula.parsed);
             let _wb = tmp.ws.workbook;
-            if ((curFormula.parsed.ca || cell.isNullTextString() || _wb.fileVersion.appName &&
+            if ((curFormula.parsed.ca || cell.isNullTextString() || _wb.fileVersion && _wb.fileVersion.appName &&
 				_wb.calcPr.calcId) && _wb.calcPr.calcMode === Asc.c_oAscCalcMode.auto) {
 				_wb.dependencyFormulas.addToChangedCell(cell);
             }
