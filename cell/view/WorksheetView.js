@@ -1852,7 +1852,7 @@
 			for (let r = selectionRange.r1; r <= r2; ++r) {
 				let cellCache = this._getCellTextCache(c, r, true);
 				if (cellCache) {
-					if (!canExecuteFormula) { 
+					if (!canExecuteFormula) {
 						this.model._getCellNoEmpty(r, c, function (cell) {
 							if (cell && !cell.isNullText() && cell.type !== CellValueType.String) {
 								let xfs = cell.getCompiledStyle();
@@ -1861,15 +1861,14 @@
 									// numFormatStr = xfs.num.getNumFormat();
 									info = xfs.asc_getNumFormatInfo();
 								}
-	
+
 								if (!info) {
 									canExecuteFormula = true
-								} 
-								else if (info && info.type !== Asc.c_oAscNumFormatType.Date && info.type !== Asc.c_oAscNumFormatType.LongDate 
+								} else if (info && info.type !== Asc.c_oAscNumFormatType.Date && info.type !== Asc.c_oAscNumFormatType.LongDate
 									&& info.type !== Asc.c_oAscNumFormatType.None && info.type !== Asc.c_oAscNumFormatType.Text) {
-										canExecuteFormula = true
+									canExecuteFormula = true
 								}
-								
+
 							}
 						});
 					}
@@ -1882,14 +1881,14 @@
 							setNumberCols.push(c);
 						}
 					}
-					
+
 					if (setRows.indexOf(r) === -1) {
 						setRows.push(r);
 					}
 					if (setCols.indexOf(c) === -1) {
 						setCols.push(c);
 					}
-                }
+				}
 			}
 		}
 
@@ -1902,7 +1901,7 @@
 		} else {
 			return null;
 		}
-	}
+	};
     // Autocomplete formula with range if possible
     WorksheetView.prototype.autoCompleteFormula = function (functionName, callFromWizard) {
         const t = this;
@@ -1923,7 +1922,7 @@
         let cell, cellType, isNumberFormat;
         let result = {};
         // let hasNumber = this._getValuesPositionsInRange(true);
-        let hasNumber = this._getAutocompleteValues();		// Get all valid values ​​for autocomplete according to the cell format and type 
+        let hasNumber = !callFromWizard && this._getAutocompleteValues();		// Get all valid values ​​for autocomplete according to the cell format and type
 
         // Get all non-empty values ​​in the range
         // let realValues = this._getValuesPositionsInRange();
@@ -1945,7 +1944,7 @@
         let firstCell = this._getCellTextCache(ar.c1, ar.r1, true);
         let lastCell = this._getCellTextCache(ar.c2, ar.r2, true);
 
-        if (hasNumber && !callFromWizard) {
+        if (hasNumber) {
             let i;
             let realValues = hasNumber.allExistedValPos;
             hasNumber = hasNumber.allNumberPos;
