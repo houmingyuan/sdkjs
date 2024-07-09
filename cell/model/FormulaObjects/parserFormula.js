@@ -2320,8 +2320,10 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 		return this._toString(true);
 	};
 	cStrucTable.prototype._toString = function (isLocal) {
-		var tblStr, columns_1, columns_2;
-		var table = this.wb.getDefinesNames(this.tableName, null);
+		// file works with "#This Row" - user with "@"
+		// isLocal - change "#This Row", to "@"
+		const table = this.wb.getDefinesNames(this.tableName, null);
+		let tblStr, columns_1, columns_2;
 		if (!table) {
 			tblStr = this.tableName;
 		} else {
@@ -2336,24 +2338,26 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 			columns_2 = this.colEndIndex.name.replace(/([#[\]])/g, "'$1");
 			tblStr += "[[" + columns_1 + "]:[" + columns_2 + "]]";
 		} else if (null != this.reservedColumnIndex) {
-			if (this.isCrossSymbol) {
+			if (this.isDynamic && isLocal) {
 				tblStr += "[" + "@" + "]";
-			} else {
+				// tblStr += "[" + this._buildLocalTableString(this.reservedColumnIndex, isLocal) + "]";
+			} else if (this.isDynamic) {
+				// tblStr += "[" + "@" + "]";
 				tblStr += "[" + this._buildLocalTableString(this.reservedColumnIndex, isLocal) + "]";
 			}
 		} else if (this.hdtIndexes || this.hdtcstartIndex || this.hdtcendIndex) {
 			tblStr += '[';
-			var i;
+			let i;
 
-			if (this.hdtIndexes.length > 0 && this.isCrossSymbol) {
-				let hdtcstart = this.hdtcstartIndex.name.replace(/([#[\]])/g, "'$1");
+			if (this.hdtIndexes.length > 0 && this.isDynamic && isLocal) {
+				let hdtcstart = this.hdtcstartIndex ? this.hdtcstartIndex.name.replace(/([#[\]])/g, "'$1") : null;
 				let hdtcend = this.hdtcendIndex ? this.hdtcendIndex.name.replace(/([#[\]])/g, "'$1") : null;
 				
 				tblStr += "@";
-				if (!hdtcend) {
+				if (hdtcstart && !hdtcend) {
 					// if one column is selected
 					tblStr += hdtcstart;
-				} else {
+				} else if (hdtcstart && hdtcend) {
 					// if multiple columns are selected
 					tblStr += '[' + hdtcstart + ']';
 					tblStr += ':[' + hdtcend + ']';
@@ -2395,7 +2399,8 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 		return tblStr;
 	};
 	cStrucTable.prototype._parseVal = function (val) {
-		var bRes = true, startCol, endCol;
+		// TODO remove extra brackets from entries =Table[[#This Row]] как в мс?
+		let bRes = true, startCol, endCol;
 		this.tableName = val['tableName'];
 		if (val['oneColumn']) {
 			startCol = val['oneColumn'].replace(/'([#[\]])/g, '$1');
@@ -2411,11 +2416,6 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 			this.colEndIndex = this.wb.getTableIndexColumnByName(this.tableName, endCol);
 			bRes = !!this.colStartIndex && !!this.colEndIndex;
 		} else if (val['reservedColumn']) {
-
-			if (val['reservedColumn'] === "@") {
-				this.isCrossSymbol = true;
-			}
-
 			this.reservedColumnIndex = parserHelp.getColumnTypeByName(val['reservedColumn']);
 			if (AscCommon.FormulaTablePartInfo.thisRow == this.reservedColumnIndex ||
 				AscCommon.FormulaTablePartInfo.headers == this.reservedColumnIndex ||
@@ -2431,7 +2431,6 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 			let isCross;
 			if (val['hdt'] === "@") {
 				isCross = true;
-				this.isCrossSymbol = true;
 			}
 
 			while (null !== (m = re.exec(val['hdt']))) {

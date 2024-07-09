@@ -1524,9 +1524,8 @@
 
 				// '(?<hdt>\\[{{rc}}\\]' + argsSeparator + '\\[{{rc}}\\]|\\[{{rc}}\\]|{{hd}}|{{dt}})(?:\\' + argsSeparator + '(?:\\[(?<hdtcstart>{{uc}})\\])(?:\\:(?:\\[(?<hdtcend>{{uc}})\\]))?)?'
 
-				//todo need to combine the old parser with the new one so that the "[#This Row]," entry is equal to the "@"" symbol 
-				//todo or do jsut substring replacement before regex.exec
-				"hdtcc":           XRegExp.build('(?<hdt>@)'+'(?:(?:\\\[?(?<hdtcstart>{{uc}})\\\]?)(?:\\:(?:\\[(?<hdtcend>{{uc}})\\]))?)?'
+				// work with separator: (?<hdt>(?:\\[{{rc}}\\])?(?:\@)?)(?:(?:\\'+argsSeparator+')?(?:\\\[?(?<hdtcstart>{{uc}})\\\]?)(?:\\:(?:\\[(?<hdtcend>{{uc}})\\]))?)?
+				"hdtcc":           XRegExp.build('(?<hdt>(?:\\[{{rc}}\\])?(?:\@)?)(?:(?:\\'+argsSeparator+')?(?:\\\[?(?<hdtcstart>{{uc}})\\\]?)(?:\\:(?:\\[(?<hdtcend>{{uc}})\\]))?)?'
 					, {
 					"rc": structured_tables_reservedColumn,
 					"hd": structured_tables_headata,
