@@ -2381,7 +2381,13 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 							tblStr += FormulaSeparators.functionArgumentSeparatorDef;
 						}
 					}
-					tblStr += "[" + this._buildLocalTableString(this.hdtIndexes[i], isLocal) + "]";
+
+					if (this.hdtcstartIndex === null) {
+						// If the formula looks like =Table[[#Headers|#All|#Data|#Totals]] - remove inner brackets
+						tblStr += this._buildLocalTableString(this.hdtIndexes[i], isLocal);
+					} else {
+						tblStr += "[" + this._buildLocalTableString(this.hdtIndexes[i], isLocal) + "]";
+					}
 				}
 
 				if (this.hdtcstartIndex) {
