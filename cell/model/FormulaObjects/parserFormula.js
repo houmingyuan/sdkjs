@@ -2331,14 +2331,23 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 		}
 
 		if (this.oneColumnIndex) {
+			// TODO add this.isCrossSign to use?
 			columns_1 = this.oneColumnIndex.name.replace(/([#[\]])/g, "'$1");
+
+			if (this.isDynamic && isLocal) {
+				columns_1 = "@" + columns_1;
+			} else if (this.isDynamic) {
+				columns_1 = "[" + this._buildLocalTableString(AscCommon.FormulaTablePartInfo.thisRow, isLocal) + "]" + 
+					FormulaSeparators.functionArgumentSeparatorDef + "[" + columns_1 + "]";
+			}
+
 			tblStr += "[" + columns_1 + "]";
 		} else if (this.colStartIndex && this.colEndIndex) {
 			columns_1 = this.colStartIndex.name.replace(/([#[\]])/g, "'$1");
 			columns_2 = this.colEndIndex.name.replace(/([#[\]])/g, "'$1");
 			tblStr += "[[" + columns_1 + "]:[" + columns_2 + "]]";
 		} else if (null != this.reservedColumnIndex) {
-			if (this.isDynamic && isLocal) {
+			if (this.isDynamic && isLocal && this.reservedColumnIndex === AscCommon.FormulaTablePartInfo.thisRow) {
 				tblStr += "[" + "@" + "]";
 				// tblStr += "[" + this._buildLocalTableString(this.reservedColumnIndex, isLocal) + "]";
 			} else if (this.isDynamic) {
@@ -2349,7 +2358,7 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 			tblStr += '[';
 			let i;
 
-			if (this.hdtIndexes.length > 0 && this.isDynamic && isLocal) {
+			if (this.hdtIndexes.length > 0 && this.isDynamic && isLocal && this.hdtIndexes[0] === AscCommon.FormulaTablePartInfo.thisRow) {
 				let hdtcstart = this.hdtcstartIndex ? this.hdtcstartIndex.name.replace(/([#[\]])/g, "'$1") : null;
 				let hdtcend = this.hdtcendIndex ? this.hdtcendIndex.name.replace(/([#[\]])/g, "'$1") : null;
 				
@@ -2404,7 +2413,11 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 		this.tableName = val['tableName'];
 		if (val['oneColumn']) {
 			startCol = val['oneColumn'].replace(/'([#[\]])/g, '$1');
-			this.oneColumnIndex = this.wb.getTableIndexColumnByName(this.tableName, startCol);
+			if (startCol.includes("@") && startCol[0] === "@") {
+				this.isDynamic = true;
+			}
+
+			this.oneColumnIndex = this.wb.getTableIndexColumnByName(this.tableName, this.isDynamic ? startCol.slice(1) : startCol);
 			bRes = !!this.oneColumnIndex;
 		} else if (val['columnRange']) {
 			startCol = val['colStart'].replace(/'([#[\]])/g, '$1');
@@ -2460,8 +2473,32 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 		var isThisRow = false;
 		var tableData, refName;
 		if (this.oneColumnIndex) {
-			paramObj.param = AscCommon.FormulaTablePartInfo.columns;
-			paramObj.startCol = this.oneColumnIndex.name;
+			if (this.isDynamic) {
+				/* this row */
+				isThisRow = true;
+				paramObj.param = AscCommon.FormulaTablePartInfo.thisRow;
+				let thisRow = this.wb.getTableRangeForFormula(this.tableName, paramObj);
+				
+				let thisCol;
+				if (thisRow) {
+					paramObj.param = AscCommon.FormulaTablePartInfo.columns;
+					paramObj.startCol = this.oneColumnIndex.name;
+					paramObj.endCol = null;
+					thisCol = this.wb.getTableRangeForFormula(this.tableName, paramObj);
+				}
+
+				if (!thisRow || !thisCol) {
+					return this._createAreaError(isThisRow);
+				}
+
+				range = new Asc.Range(thisCol.range.c1, thisRow.range.r1, thisCol.range.c2, thisRow.range.r2);
+
+				tableData = thisCol;
+				tableData.range = range;
+			} else {
+				paramObj.param = AscCommon.FormulaTablePartInfo.columns;
+				paramObj.startCol = this.oneColumnIndex.name;
+			}
 		} else if (this.colStartIndex && this.colEndIndex) {
 			paramObj.param = AscCommon.FormulaTablePartInfo.columns;
 			paramObj.startCol = this.colStartIndex.name;
