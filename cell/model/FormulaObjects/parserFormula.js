@@ -2349,9 +2349,7 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 		} else if (null != this.reservedColumnIndex) {
 			if (this.isDynamic && isLocal && this.reservedColumnIndex === AscCommon.FormulaTablePartInfo.thisRow) {
 				tblStr += "[" + "@" + "]";
-				// tblStr += "[" + this._buildLocalTableString(this.reservedColumnIndex, isLocal) + "]";
 			} else if (this.isDynamic) {
-				// tblStr += "[" + "@" + "]";
 				tblStr += "[" + this._buildLocalTableString(this.reservedColumnIndex, isLocal) + "]";
 			}
 		} else if (this.hdtIndexes || this.hdtcstartIndex || this.hdtcendIndex) {
@@ -2414,7 +2412,6 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 		return tblStr;
 	};
 	cStrucTable.prototype._parseVal = function (val) {
-		// TODO remove extra brackets from entries =Table[[#This Row]] как в мс?
 		let bRes = true, startCol, endCol;
 		this.tableName = val['tableName'];
 		if (val['oneColumn']) {
@@ -2453,7 +2450,7 @@ parserHelp.setDigitSeparator(AscCommon.g_oDefaultCultureInfo.NumberDecimalSepara
 			}
 
 			while (null !== (m = re.exec(val['hdt']))) {
-				let param = /*isCross ? AscCommon.FormulaTablePartInfo.thisRow :*/ parserHelp.getColumnTypeByName(isCross ? m[0] : m[1]);
+				let param = parserHelp.getColumnTypeByName(isCross ? m[0] : m[1]);
 				if (AscCommon.FormulaTablePartInfo.thisRow == param ||
 					AscCommon.FormulaTablePartInfo.headers == param || AscCommon.FormulaTablePartInfo.totals == param) {
 					this.isDynamic = true;
