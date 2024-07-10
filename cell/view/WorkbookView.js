@@ -2733,6 +2733,7 @@
 		if (this.skipHelpSelector) {
 			return;
 		}
+
 		// ToDo для ускорения можно завести объект, куда класть результаты поиска по формулам и второй раз не искать.
 		let arrResult = [], _lastFNameLength;
 		if (fName) {
@@ -2759,6 +2760,7 @@
 		if (!s || s.charAt(0) !== "=") {
 			return;
 		}
+
 		let arrResult = [];
 		let obj = this.cellEditor._getFunctionByString(pos, s);
 		let fName = obj.fName;
@@ -2771,6 +2773,7 @@
 		if (fName == null || fPos == null) {
 			return;
 		}
+
 		var _getInnerTable = function (_sFullTable, tableName) {
 			var _bracketCount = 0;
 			var res = null;

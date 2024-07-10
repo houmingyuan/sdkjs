@@ -2460,6 +2460,7 @@ $(function () {
 	});
 
 	QUnit.test('Conditional formatting: test apply to', function (assert) {
+
 		let tableOptions = new AscCommonExcel.AddFormatTableOptions();
 		tableOptions.range = "A1:B3";
 		api.asc_addAutoFilter("TableStyleMedium2", tableOptions);
@@ -2638,10 +2639,6 @@ $(function () {
 
 		assert.strictEqual(sTableData, tableName + "[#Headers]", "check selection Headers");
 
-		// wb.dependencyFormulas._foreachDefName(function(defName) {
-		// 	wb.dependencyFormulas.removeDefName(undefined, defName.name);
-		// });
-
 		clearData(0, 99, 0, 105);
 	});
 
@@ -2659,11 +2656,6 @@ $(function () {
 
 		let table = tables[0];
 		let tableName = table.DisplayName;	// due to the fact that other tables are used in file, get the name of the one we need by this way
-
-		// t.model.autoFilters.addAutoFilter("TableStyleMedium2", ar=range,addFormatTableOptionsObj,null,null)
-		// wsView.addAutoFilter("TableStyleMedium2", addFormatTableOptionsObj)
-		// api.asc_addAutoFilter("TableStyleMedium2", addFormatTableOptionsObj)
-
 
 		// calc res check
 		let cellWithFormula = new AscCommonExcel.CCellWithFormula(ws, 101, 5);
