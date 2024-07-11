@@ -4352,6 +4352,19 @@
         var isPrint = this.usePrintScale;
         var activeNamedSheetView = !isPrint && this.model.getActiveNamedSheetViewId() !== null;
 
+		//var tempMatrix = this.drawingCtx.Transform.CreateDublicate();
+		//var resMatrix = tempMatrix.Multiply(transformMatrix);
+		//this.drawingCtx.setTransform(resMatrix.sx, resMatrix.shy, resMatrix.shx, resMatrix.sy, resMatrix.tx,
+			//resMatrix.ty);
+
+
+		let _transform = this.drawingCtx.Transform ? this.drawingCtx.Transform : new AscCommon.CMatrix();
+		let transformMatrix = _transform.CreateDublicate ? _transform.CreateDublicate() : _transform.clone();
+		//transformMatrix.RotateAt(180, this.drawingCtx.getWidth() / 2, this.drawingCtx.getHeight() / 2);
+		this.drawingCtx.setTransform(-1, transformMatrix.shy, transformMatrix.shx, transformMatrix.sy, this.drawingCtx.getWidth(), transformMatrix.ty);
+
+		this.drawingCtx.updateTransforms()
+
         this._drawHeader(null, this.headersLeft, this.headersTop, this.headersWidth,
           this.headersHeight, kHeaderDefault, true, -1);
         this.drawingCtx.beginPath()
@@ -4362,6 +4375,19 @@
           .setFillStyle(activeNamedSheetView ? this.settings.header.cornerColorSheetView : this.settings.header.cornerColor)
           .fill();
     };
+	window.rightToleft = true;
+	WorksheetView.prototype._drawText = function (stringRender, ctx, textX, textY, textW, color) {
+		stringRender.render(ctx, window.rightToleft ? (ctx.getWidth() - textX - textW) : textX, textY, textW, color);
+		return stringRender;
+	};
+	WorksheetView.prototype._fillText = function (ctx, text, x, y, maxWidth, charWidths, angle) {
+		let charsWidth = 0;
+		for (let i in charWidths) {
+			charsWidth += charWidths[i];
+		}
+		ctx.fillText( text, x + charsWidth, y, maxWidth, charWidths, angle)
+		return ctx;
+	};
 
     /** Рисует заголовки видимых колонок */
     WorksheetView.prototype._drawColumnHeaders = function (drawingCtx, start, end, style, offsetXForDraw, offsetYForDraw) {
@@ -4397,6 +4423,12 @@
           }
 
           this._setDefaultFont(drawingCtx);
+
+		/*let _transform = this.drawingCtx.Transform ? this.drawingCtx.Transform : new AscCommon.CMatrix();
+		let transformMatrix = _transform.CreateDublicate ? _transform.CreateDublicate() : _transform.clone();
+
+		this.drawingCtx.setTransform(123, transformMatrix.shy, transformMatrix.shx, transformMatrix.sy, transformMatrix.tx + 100, transformMatrix.ty);
+		this.drawingCtx.updateTransforms()*/
 
           // draw column headers
 		  var l = this._getColLeft(start) - offsetX, w;
@@ -4637,7 +4669,8 @@
         var textY = this._calcTextVertPos(y, h, bl, tm, Asc.c_oAscVAlign.Bottom);
 
 		ctx.AddClipRect(x, y, w, h);
-		ctx.setFillStyle(color).fillText(text, textX, textY + Asc.round(tm.baseline * this.getZoom()), undefined, sr.charWidths);
+		ctx.setFillStyle(color);
+		this._fillText(ctx, text, textX, textY + Asc.round(tm.baseline * this.getZoom()), undefined, sr.charWidths);
 		ctx.RemoveClipRect();
     };
 
@@ -5691,7 +5724,7 @@
 				}
 			}
 
-			this.stringRender.render(drawingCtx, 0, 0, textW, color);
+			this._drawText(this.stringRender, drawingCtx, 0, 0, textW, color);
 			this.stringRender.resetTransform(isPrintPreview ? null : drawingCtx);
 
 			if (transformMatrix) {
@@ -5743,7 +5776,8 @@
 					}
 				}
 			}
-			this.stringRender.restoreInternalState(ct.state).render(drawingCtx, textX, textY, textW, color);
+			//this.stringRender.restoreInternalState(ct.state).render(drawingCtx, textX, textY, textW, color);
+			this._drawText(this.stringRender.restoreInternalState(ct.state), drawingCtx, textX, textY, textW, color)
 			ctx.RemoveClipRect();
 		}
 
@@ -6349,7 +6383,7 @@
 				let _y2 = Math.min(tY1 + textHeight * _zoom, y2);
 				if (_x1 < _x2 && _y1 < _y2) {
 					ctx.AddClipRect(x1, y1, x2 - x1, y2 - y1);
-					this.stringRender.render(undefined, tX1, tY1, 100, this.settings.activeCellBorderColor);
+					this._drawText(this.stringRender, undefined, tX1, tY1, 100, this.settings.activeCellBorderColor);
 					ctx.RemoveClipRect();
 				}
 			}
@@ -7395,6 +7429,14 @@
 
         // set clipping rect to cells area
         var ctx = this.overlayCtx;
+
+		let _transform = ctx.Transform ? ctx.Transform : new AscCommon.CMatrix();
+		let transformMatrix = _transform.CreateDublicate ? _transform.CreateDublicate() : _transform.clone();
+		//transformMatrix.RotateAt(180, this.drawingCtx.getWidth() / 2, this.drawingCtx.getHeight() / 2);
+		ctx.setTransform(-1, transformMatrix.shy, transformMatrix.shx, transformMatrix.sy, ctx.getWidth(), transformMatrix.ty);
+
+		ctx.updateTransforms()
+
         ctx.save().beginPath()
           .rect(this.cellsLeft, this.cellsTop, ctx.getWidth() - this.cellsLeft, ctx.getHeight() - this.cellsTop)
           .clip();
@@ -9962,24 +10004,47 @@
 					widthDiff = 0;
 				}
 			}
-			for (x1 = this.cellsLeft + widthDiff, c2 = this.nColsCount - 1; c <= c2; ++c, x1 = x2) {
-				w = this._getColumnWidth(c);
-				x2 = x1 + w;
-				dx = half ? w / 2.0 * Math.sign(c - activeCellCol) : 0;
-				if (x1 + dx > x) {
-					if (c !== this.visibleRange.c1) {
-						if (dx) {
-							c -= 1;
-							x2 = x1;
-							x1 -= w;
+			if (window.rightToleft) {
+				for (x1 = this.drawingCtx.getWidth() - (this.cellsLeft + widthDiff), c2 = this.nColsCount - 1; c <= c2; ++c, x1 = x2) {
+					w = this._getColumnWidth(c);
+					x2 = x1 - w;
+					dx = half ? w / 2.0 * Math.sign(c - activeCellCol) : 0;
+					if (x1 + dx < x) {
+						if (c !== this.visibleRange.c1) {
+							if (dx) {
+								c -= 1;
+								x2 = x1;
+								x1 -= w;
+							}
+							return {col: c, left: x1, right: x2};
+						} else {
+							c = c2;
+							break;
 						}
+					} else if (x >= x2 + dx) {
 						return {col: c, left: x1, right: x2};
-					} else {
-						c = c2;
-						break;
 					}
-				} else if (x <= x2 + dx) {
-					return {col: c, left: x1, right: x2};
+				}
+			} else {
+				for (x1 = this.cellsLeft + widthDiff, c2 = this.nColsCount - 1; c <= c2; ++c, x1 = x2) {
+					w = this._getColumnWidth(c);
+					x2 = x1 + w;
+					dx = half ? w / 2.0 * Math.sign(c - activeCellCol) : 0;
+					if (x1 + dx > x) {
+						if (c !== this.visibleRange.c1) {
+							if (dx) {
+								c -= 1;
+								x2 = x1;
+								x1 -= w;
+							}
+							return {col: c, left: x1, right: x2};
+						} else {
+							c = c2;
+							break;
+						}
+					} else if (x <= x2 + dx) {
+						return {col: c, left: x1, right: x2};
+					}
 				}
 			}
 			if (!canReturnNull) {
@@ -21836,7 +21901,8 @@
 
 		if(w > tm.width + 3) {
 			var diff = bActive ? 1 : 0;
-			ctx.setFillStyle(st.color).fillText(text, x + w / 2 - tm.width / 2 + diff, y + Asc.round(tm.baseline) + h / 2 -  tm.height / 2 + diff, undefined, sr.charWidths);
+			ctx.setFillStyle(st.color);
+			this._fillText(ctx, text, x + w / 2 - tm.width / 2 + diff, y + Asc.round(tm.baseline) + h / 2 -  tm.height / 2 + diff, undefined, sr.charWidths);
 		}
 
 		ctx.stroke();
